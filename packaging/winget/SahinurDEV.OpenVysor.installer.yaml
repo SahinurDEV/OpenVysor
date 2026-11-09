@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: SahinurDEV.OpenVysor
+PackageVersion: 0.3.1
+InstallerType: portable
+Commands:
+  - openvysor
+Dependencies:
+  PackageDependencies:
+    - PackageIdentifier: Google.PlatformTools
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/SahinurDEV/OpenVysor/releases/download/v0.3.1/OpenVysor-windows-x64.exe
+    InstallerSha256: E40BC59F9EEB5777B40C49E0BA1AD777D9FD3A89D7660F059D88B87091D48052
+ManifestType: installer
+ManifestVersion: 1.6.0

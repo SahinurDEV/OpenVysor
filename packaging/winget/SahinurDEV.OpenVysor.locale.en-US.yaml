@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: SahinurDEV.OpenVysor
+PackageVersion: 0.3.1
+PackageLocale: en-US
+Publisher: Sahinur
+PublisherUrl: https://github.com/SahinurDEV
+PackageName: OpenVysor
+PackageUrl: https://sahinurdev.github.io/OpenVysor/
+License: Apache-2.0
+LicenseUrl: https://github.com/SahinurDEV/OpenVysor/blob/main/LICENSE
+ShortDescription: Free, open-source Android screen mirroring and control for your computer.
+Tags:
+  - adb
+  - android
+  - mirroring
+  - scrcpy
+  - screen-mirroring
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

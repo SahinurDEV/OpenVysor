@@ -1,30 +1,23 @@
 #!/usr/bin/env bash
 # Packs native/target/release into dist-release/. Run from the repository root
 # after `cargo build --release`, with one of: windows-x64, linux-x64, macos-x64, macos-arm64.
+# File names carry no version, so the website can link to the latest release of each.
 set -euo pipefail
 
 platform="$1"
-version="$(sed -n 's/^version = "\(.*\)"$/\1/p' native/Cargo.toml | head -n 1)"
-name="OpenVysor-$version-$platform"
-out="dist-release"
+version="$(sed -n 's/^version = "\(.*\)"\r\{0,1\}$/\1/p' native/Cargo.toml | head -n 1)"
+name="OpenVysor-$platform"
+out="$PWD/dist-release"
 stage="$out/$name"
-built="native/target/release/openvysor-native"
+built="$PWD/native/target/release/openvysor-native"
 
 mkdir -p "$stage"
 cp LICENSE "$stage/LICENSE.txt"
 cp NOTICE "$stage/NOTICE.txt"
 cp native/resources/scrcpy-LICENSE.txt "$stage/"
 
-case "$platform" in
-  windows-*)
-    cp "$built.exe" "$stage/OpenVysor.exe"
-    (cd "$out" && 7z a -tzip "$name.zip" "$name" >/dev/null)
-    ;;
-  linux-*)
-    cp native/resources/openh264-LICENSE.txt "$stage/"
-    cp "$built" "$stage/openvysor"
-    cp native/resources/icon.png "$stage/openvysor.png"
-    cat > "$stage/openvysor.desktop" <<'DESKTOP'
+desktop_entry() {
+  cat <<'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=OpenVysor
@@ -35,7 +28,59 @@ Terminal=false
 Categories=Utility;
 StartupWMClass=openvysor
 DESKTOP
+}
+
+build_deb() {
+  local root="$out/deb"
+  mkdir -p "$root/DEBIAN" "$root/usr/bin" "$root/usr/share/applications" \
+    "$root/usr/share/icons/hicolor/32x32/apps" "$root/usr/share/doc/openvysor"
+  install -m 755 "$built" "$root/usr/bin/openvysor"
+  desktop_entry > "$root/usr/share/applications/openvysor.desktop"
+  install -m 644 native/resources/icon.png "$root/usr/share/icons/hicolor/32x32/apps/openvysor.png"
+  install -m 644 LICENSE NOTICE native/resources/scrcpy-LICENSE.txt native/resources/openh264-LICENSE.txt "$root/usr/share/doc/openvysor/"
+  cat > "$root/DEBIAN/control" <<CONTROL
+Package: openvysor
+Version: $version
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.35), libasound2 | libasound2t64, libgl1
+Recommends: adb, android-sdk-platform-tools-common
+Maintainer: SahinurDEV <68515168+SahinurDEV@users.noreply.github.com>
+Homepage: https://sahinurdev.github.io/OpenVysor/
+Description: Mirror and control Android phones
+ Free, open-source Android screen mirroring and control, with every
+ phone app in its own window.
+CONTROL
+  dpkg-deb --root-owner-group --build "$root" "$out/$name.deb"
+  rm -rf "$root"
+}
+
+build_dmg() {
+  local folder="$out/dmg"
+  mkdir -p "$folder"
+  cp -R "$stage/OpenVysor.app" "$folder/"
+  ln -s /Applications "$folder/Applications"
+  cp "$stage"/*.txt "$folder/"
+  # hdiutil sometimes reports a busy resource on a fresh runner.
+  hdiutil create -volname OpenVysor -srcfolder "$folder" -ov -format UDZO "$out/$name.dmg" \
+    || { sleep 5; hdiutil create -volname OpenVysor -srcfolder "$folder" -ov -format UDZO "$out/$name.dmg"; }
+  rm -rf "$folder"
+}
+
+case "$platform" in
+  windows-*)
+    cp "$built.exe" "$stage/OpenVysor.exe"
+    cp "$built.exe" "$out/$name.exe"
+    (cd "$out" && 7z a -tzip "$name.zip" "$name" >/dev/null)
+    ;;
+  linux-*)
+    cp native/resources/openh264-LICENSE.txt "$stage/"
+    cp "$built" "$stage/openvysor"
+    cp native/resources/icon.png "$stage/openvysor.png"
+    desktop_entry > "$stage/openvysor.desktop"
     tar -C "$out" -czf "$out/$name.tar.gz" "$name"
+    build_deb
     ;;
   macos-*)
     cp native/resources/openh264-LICENSE.txt "$stage/"
@@ -72,6 +117,7 @@ PLIST
     # Apple Silicon refuses to run a bundle with no signature at all.
     codesign --force --deep --sign - "$stage/OpenVysor.app"
     (cd "$out" && ditto -c -k --keepParent "$name" "$name.zip")
+    build_dmg
     ;;
   *)
     echo "unknown platform: $platform" >&2

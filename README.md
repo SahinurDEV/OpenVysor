@@ -60,6 +60,14 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 | Linux x64 | ✅ | ✅ Virtual display | ⏳ Not yet |
 | macOS (Apple Silicon and Intel) | ✅ GitHub Actions | ⏳ Not yet | ⏳ Not yet |
 
+## Downloads
+
+| Computer | Formats |
+| --- | --- |
+| Windows x64 | `.exe` (portable), `.zip` |
+| macOS, Apple Silicon and Intel | `.dmg`, `.zip` |
+| Linux x64 | `.deb`, `.tar.gz` |
+
 ## Quick start
 
 You need Android's `adb` tool and a phone with **USB debugging** turned on.
@@ -70,8 +78,9 @@ You need Android's `adb` tool and a phone with **USB debugging** turned on.
 | macOS | `brew install android-platform-tools` |
 | Debian or Ubuntu | `sudo apt install adb android-sdk-platform-tools-common` |
 
-1. Download the package for your computer from
-   [Releases](https://github.com/SahinurDEV/OpenVysor/releases).
+1. Download the package for your computer from the
+   [website](https://sahinurdev.github.io/OpenVysor/#install), which detects it for you, or from
+   [Releases](https://github.com/SahinurDEV/OpenVysor/releases), which keeps every version.
 2. Open OpenVysor. See [install notes](docs/PLATFORM_SETUP.md) for the security prompts on
    unsigned builds.
 3. Connect the phone with a USB data cable and tap **Allow** on the phone.

@@ -3,6 +3,8 @@ name = "openvysor-native"
 version = "0.3.0"
 description = "Open-source Android mirroring and control for Windows, macOS and Linux"
 license = "Apache-2.0"
+repository = "https://github.com/SahinurDEV/OpenVysor"
+homepage = "https://sahinurdev.github.io/OpenVysor/"
 edition = "2024"
 
 [dependencies]

@@ -1,0 +1,44 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OpenVysor version
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: computer
+    attributes:
+      label: Computer and operating system
+      placeholder: Windows 11, Ubuntu 24.04 on Wayland, macOS 15 on Apple Silicon
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone model and Android version
+      description: Please don't include the phone's serial number.
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options: [USB, Wi-Fi]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove anything private first.

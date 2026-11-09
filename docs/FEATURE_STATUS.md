@@ -59,7 +59,7 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | --- | --- | --- | --- |
 | Windows 10/11 x64 | Passes | Verified | Verified for app windows, see above |
 | Linux x64 | Passes in a Debian container | Verified on a virtual X11 display | **Not verified** |
-| macOS arm64 and x64 | Run by GitHub Actions | **Not verified** | **Not verified** |
+| macOS arm64 and x64 | Passes on GitHub Actions | **Not verified** | **Not verified** |
 
 macOS and Linux decode video in software with OpenH264, assuming the BT.709 color
 matrix. Wayland does not let apps position windows, so "Arrange windows" may do

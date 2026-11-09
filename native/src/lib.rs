@@ -1,5 +1,8 @@
 pub mod adb;
 pub mod app;
+pub mod files_page;
+pub mod notifications_page;
+pub mod profiles;
 pub mod audio;
 pub mod clipboard;
 pub mod decoder;
@@ -11,4 +14,6 @@ pub mod recorder;
 pub mod state;
 pub mod theme;
 pub mod transfer;
+#[cfg(any(windows, target_os = "macos"))]
+pub mod tray;
 pub mod video;

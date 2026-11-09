@@ -52,6 +52,13 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | End-to-end latency | **Not measured** |
 | Hardware video decoding | Not done; decoding runs on the CPU |
 | Installer | Not done; the app is one portable `.exe` |
+| Workspaces (save, delete) | Save verified through the real UI against a mock adb on a virtual display. **Reopening not verified on a phone** |
+| Per-app quality and window position | Saving verified through the real UI against a mock adb. **Effect on a real stream not verified** |
+| Key mapping | Adding and removing a binding verified through the real UI on a sample picture. **Touches not verified on a phone** |
+| File browser | Browsing and downloading verified through the real UI against a mock adb, including odd file names. Upload unit level only. **Not verified on a phone** |
+| Notifications | Parser and page verified against sample `dumpsys` output. **Not verified on a phone; the real format may differ by Android version** |
+| Tray icon and global shortcut | Window restore verified on Windows. **The key press and tray clicks not verified; macOS not verified** |
+| Mirror all | Button verified with two mock phones. **Not verified with two real phones** |
 | One-click ADB setup | Real download and install verified on Windows, and a failed download recovers. **Not verified on macOS** |
 | Quality presets, open windows list, page shortcuts, search keys | Unit tested and checked in screenshots, **not yet verified with a phone** |
 

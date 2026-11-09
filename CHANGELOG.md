@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Workspaces: save the open windows under a name and reopen them, in place, with one click.
+- Per-app quality and remembered window positions. Right-click an app to choose its quality.
+- Key mapping: bind keyboard keys to spots on the screen, for games and repetitive taps.
+- A Files page to browse the phone's shared storage, download, and upload by drag and drop.
+- A Notifications page, off until turned on. Text is never saved, and an app opens to reply.
+- A tray icon and Ctrl+Shift+O (Cmd+Shift+O on macOS) to bring the app forward. Windows and macOS only.
+- Mirror all, for several phones at once.
+
+### Changed
+
+- Page shortcuts are now Ctrl+1 to Ctrl+5, to include the two new pages.
+
 ## 0.3.1
 
 ### Added

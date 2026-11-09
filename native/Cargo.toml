@@ -32,6 +32,10 @@ eframe = { version = "0.37.0", default-features = false, features = ["x11", "way
 windows = { version = "0.62.2", features = ["Win32_Media_MediaFoundation", "Win32_System_Com", "Win32_Foundation"] }
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+global-hotkey = "0.9.0"
+tray-icon = "0.26.1"
+
 [profile.release]
 codegen-units = 1
 lto = true

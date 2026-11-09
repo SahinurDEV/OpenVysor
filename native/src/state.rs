@@ -1,5 +1,6 @@
 //! State shared by the main window, the phone windows and the background threads.
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
@@ -8,6 +9,7 @@ use eframe::egui::{Context, Pos2, ViewportCommand, ViewportId, pos2};
 use serde::{Deserialize, Serialize};
 
 use crate::adb::connection::{DeviceRegistry, spawn_watcher};
+use crate::adb::device::DeviceState;
 use crate::clipboard;
 use crate::error::{AppError, Result};
 use crate::input::phone_window_size;
@@ -15,6 +17,7 @@ use crate::mirroring::MirrorManager;
 use crate::mirroring::protocol::SCRCPY_VERSION;
 use crate::mirroring::session::MirrorOptions;
 use crate::phone::Phone;
+use crate::profiles::{AppProfile, Workspace, WorkspaceWindow, profile_key, store_workspace};
 
 const SERVER: &[u8] = include_bytes!("../resources/scrcpy-server");
 const SCREEN_MARGIN: f32 = 16.0;
@@ -29,11 +32,21 @@ pub struct Settings {
     pub dark: bool,
     pub options: MirrorOptions,
     pub clipboard_sync: bool,
+    pub notifications: bool,
+    pub profiles: BTreeMap<String, AppProfile>,
+    pub workspaces: Vec<Workspace>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { dark: true, options: MirrorOptions::default(), clipboard_sync: true }
+        Self {
+            dark: true,
+            options: MirrorOptions::default(),
+            clipboard_sync: true,
+            notifications: false,
+            profiles: BTreeMap::new(),
+            workspaces: Vec::new(),
+        }
     }
 }
 
@@ -130,18 +143,60 @@ impl Core {
         }
     }
 
+    pub fn profile(&self, package: Option<&str>) -> AppProfile {
+        self.settings.lock().unwrap().profiles.get(profile_key(package)).cloned().unwrap_or_default()
+    }
+
+    pub fn update_profile(&self, package: Option<&str>, change: impl FnOnce(&mut AppProfile)) {
+        self.update_settings(|settings| {
+            let key = profile_key(package);
+            let mut profile = settings.profiles.remove(key).unwrap_or_default();
+            change(&mut profile);
+            if profile != AppProfile::default() {
+                settings.profiles.insert(key.to_string(), profile);
+            }
+        });
+    }
+
+    pub fn save_workspace(&self, name: &str) {
+        let windows = self.phones().iter().map(|phone| phone.as_workspace_window()).collect();
+        let workspace = Workspace { name: name.to_string(), windows };
+        self.update_settings(|settings| store_workspace(&mut settings.workspaces, workspace));
+    }
+
+    /// Opens the windows of a workspace whose phones are connected.
+    pub fn open_workspace(self: &Arc<Self>, ctx: &Context, workspace: &Workspace) {
+        let devices = self.registry.devices();
+        let online = |window: &&WorkspaceWindow| devices.iter().any(|device| device.serial == window.serial && device.state == DeviceState::Online);
+        for window in workspace.windows.iter().filter(online) {
+            self.open_phone_at(ctx, &window.serial, window.package.clone(), window.title.clone(), window.position);
+        }
+    }
+
     /// Opens a phone window, or brings forward the one already showing this target.
     pub fn open_phone(self: &Arc<Self>, ctx: &Context, serial: &str, package: Option<String>, title: String) {
+        self.open_phone_at(ctx, serial, package, title, None);
+    }
+
+    fn open_phone_at(self: &Arc<Self>, ctx: &Context, serial: &str, package: Option<String>, title: String, position: Option<[f32; 2]>) {
         if let Some(open) = self.phones().iter().find(|phone| phone.shows(serial, package.as_deref())) {
             ctx.send_viewport_cmd_to(open.id, ViewportCommand::Focus);
             return;
         }
         let number = self.next_window.fetch_add(1, Ordering::Relaxed);
         let offset = CASCADE_ORIGIN + (number % CASCADE_LENGTH) as f32 * CASCADE_STEP;
-        let phone = Phone::new(self.clone(), ctx.clone(), number, serial, package, title, pos2(offset, offset));
+        let position = position.or(self.profile(package.as_deref()).position).map_or(pos2(offset, offset), Pos2::from);
+        let phone = Phone::new(self.clone(), ctx.clone(), number, serial, package, title, position);
         self.phones.lock().unwrap().push(phone.clone());
         phone.start();
         ctx.request_repaint();
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn open_sample_phone(self: &Arc<Self>, ctx: &Context, editing_keys: bool) {
+        let phone = Phone::new(self.clone(), ctx.clone(), 0, "sample", Some("sample.Game".to_string()), "Game".to_string(), pos2(60.0, 40.0));
+        phone.show_sample_picture(editing_keys);
+        self.phones.lock().unwrap().push(phone);
     }
 
     pub fn forget_phone(&self, id: ViewportId) {

@@ -299,6 +299,9 @@ pub enum Glyph {
     Gear,
     Wifi,
     Search,
+    Folder,
+    File,
+    Bell,
 }
 
 fn arc(center: Pos2, radius: f32, from: f32, to: f32) -> Vec<Pos2> {
@@ -349,6 +352,22 @@ pub fn glyph(painter: &Painter, kind: Glyph, center: Pos2, size: f32, color: Col
         Glyph::Search => {
             painter.circle_stroke(at(-1.5, -1.5), 6.0 * scale, stroke);
             painter.line_segment([at(3.0, 3.0), at(8.0, 8.0)], stroke);
+        }
+        Glyph::Folder => {
+            painter.add(egui::Shape::line(vec![at(-8.0, -3.0), at(-8.0, -7.0), at(-2.5, -7.0), at(0.0, -3.5)], stroke));
+            painter.rect_stroke(Rect::from_min_max(at(-8.0, -3.5), at(8.0, 7.0)), 2.0 * scale, stroke, StrokeKind::Middle);
+        }
+        Glyph::File => {
+            painter.add(egui::Shape::closed_line(vec![at(-6.0, -8.0), at(2.0, -8.0), at(6.0, -4.0), at(6.0, 8.0), at(-6.0, 8.0)], stroke));
+            painter.line_segment([at(2.0, -8.0), at(2.0, -4.0)], stroke);
+            painter.line_segment([at(2.0, -4.0), at(6.0, -4.0)], stroke);
+        }
+        Glyph::Bell => {
+            painter.add(egui::Shape::line(arc(at(0.0, -2.0), 5.5 * scale, std::f32::consts::PI, std::f32::consts::TAU), stroke));
+            painter.line_segment([at(-5.5, -2.0), at(-7.0, 5.0)], stroke);
+            painter.line_segment([at(5.5, -2.0), at(7.0, 5.0)], stroke);
+            painter.line_segment([at(-8.0, 5.0), at(8.0, 5.0)], stroke);
+            painter.circle_filled(at(0.0, 8.0), 1.6 * scale, color);
         }
     }
 }

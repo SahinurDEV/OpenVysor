@@ -17,7 +17,9 @@ use crate::adb::device::{ConnectionType, Device, DeviceState};
 use crate::adb::setup;
 use crate::adb::wireless;
 use crate::mirroring::apps::AppInfo;
-use crate::mirroring::session::MirrorOptions;
+use crate::files_page::FilesPage;
+use crate::notifications_page::NotificationsPage;
+use crate::profiles::{Quality, apply_quality, quality_of};
 use crate::state::{Core, Settings};
 use crate::theme::{self, ButtonKind, Glyph, Palette, palette, semibold};
 
@@ -30,38 +32,12 @@ const QR_SIDE: f32 = 208.0;
 const QR_POLL: Duration = Duration::from_millis(1500);
 const COPIED_LABEL_TIME: Duration = Duration::from_secs(2);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Quality {
-    Smooth,
-    Balanced,
-    Sharp,
-    Custom,
-}
-
-/// Longest side, bit rate and frame rate for each one-click choice.
-const QUALITY_PRESETS: [(Quality, u32, u32, u32); 3] = [
-    (Quality::Smooth, 1280, 4_000_000, 60),
-    (Quality::Balanced, 1600, 8_000_000, 60),
-    (Quality::Sharp, 0, 16_000_000, 60),
-];
-
-fn quality_of(options: &MirrorOptions) -> Quality {
-    QUALITY_PRESETS
-        .iter()
-        .find(|(_, size, rate, fps)| (*size, *rate, *fps) == (options.max_size, options.bit_rate, options.max_fps))
-        .map_or(Quality::Custom, |(quality, ..)| *quality)
-}
-
-fn apply_quality(options: &mut MirrorOptions, quality: Quality) {
-    if let Some((_, size, rate, fps)) = QUALITY_PRESETS.iter().find(|(preset, ..)| *preset == quality) {
-        (options.max_size, options.bit_rate, options.max_fps) = (*size, *rate, *fps);
-    }
-}
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Page {
     Devices,
     Apps,
+    Files,
+    Notifications,
     Settings,
 }
 
@@ -178,6 +154,11 @@ pub struct App {
     focus_search: bool,
     copied_at: Option<Instant>,
     adb_setup: Arc<Mutex<AdbSetup>>,
+    workspace_name: String,
+    files: FilesPage,
+    notifications: NotificationsPage,
+    #[cfg(any(windows, target_os = "macos"))]
+    _tray: Option<crate::tray::Tray>,
     package_to_open: Option<String>,
     #[cfg(debug_assertions)]
     preview: String,
@@ -322,6 +303,11 @@ impl App {
             focus_search: false,
             copied_at: None,
             adb_setup: Arc::default(),
+            workspace_name: String::new(),
+            files: FilesPage::default(),
+            notifications: NotificationsPage::default(),
+            #[cfg(any(windows, target_os = "macos"))]
+            _tray: crate::tray::install(&context.egui_ctx),
             package_to_open,
             #[cfg(debug_assertions)]
             preview: std::env::var("OPENVYSOR_PREVIEW").unwrap_or_default(),
@@ -338,10 +324,28 @@ impl App {
         match self.preview.as_str() {
             "apps" => self.page = Page::Apps,
             "settings" => self.page = Page::Settings,
+            "files" => self.page = Page::Files,
+            "notifications" => {
+                self.core.settings.lock().unwrap().notifications = true;
+                self.page = Page::Notifications;
+            }
+            "workspaces" => {
+                let window = crate::profiles::WorkspaceWindow { serial: "sample".to_string(), package: None, title: "Sample".to_string(), position: None };
+                self.core.settings.lock().unwrap().workspaces.push(crate::profiles::Workspace { name: "Morning".to_string(), windows: vec![window; 3] });
+            }
             "wireless" => self.show_wireless = true,
             "light" => self.core.settings.lock().unwrap().dark = false,
             "dark" => self.core.settings.lock().unwrap().dark = true,
             "adb-setup" => self.start_adb_setup(ctx),
+            "keys" => self.core.open_sample_phone(ctx, true),
+            #[cfg(any(windows, target_os = "macos"))]
+            "restore" => {
+                let ctx = ctx.clone();
+                thread::spawn(move || {
+                    thread::sleep(Duration::from_secs(8));
+                    crate::tray::show_main_window(&ctx);
+                });
+            }
             "windows" => {
                 self.core.open_phone(ctx, "sample", None, "Sample phone".to_string());
                 self.core.open_phone(ctx, "sample", Some("sample.Notes".to_string()), "Notes".to_string());
@@ -387,6 +391,9 @@ impl App {
     }
 
     fn go_to(&mut self, page: Page) {
+        if self.page == Page::Notifications && page != Page::Notifications {
+            self.notifications.clear();
+        }
         self.focus_search = page == Page::Apps;
         self.page = page;
     }
@@ -424,7 +431,9 @@ impl App {
         ui.spacing_mut().item_spacing.y = 4.0;
         self.nav_item(ui, Page::Devices, Glyph::Phone, "Devices", "Ctrl+1", colors);
         self.nav_item(ui, Page::Apps, Glyph::Grid, "Apps", "Ctrl+2", colors);
-        self.nav_item(ui, Page::Settings, Glyph::Gear, "Settings", "Ctrl+3", colors);
+        self.nav_item(ui, Page::Files, Glyph::Folder, "Files", "Ctrl+3", colors);
+        self.nav_item(ui, Page::Notifications, Glyph::Bell, "Notifications", "Ctrl+4", colors);
+        self.nav_item(ui, Page::Settings, Glyph::Gear, "Settings", "Ctrl+5", colors);
 
         let status = self.core.registry.status();
         let windows = self.core.phones().len();
@@ -461,12 +470,18 @@ impl App {
             if !self.core.phones().is_empty() && theme::button(ui, ButtonKind::Quiet, "Arrange windows", true).clicked() {
                 self.core.arrange(ui.ctx());
             }
+            if online > 1 && theme::button(ui, ButtonKind::Quiet, "Mirror all", true).clicked() {
+                for device in devices.iter().filter(|device| device.state == DeviceState::Online) {
+                    self.core.open_phone(ui.ctx(), &device.serial, None, device_name(device));
+                }
+            }
         });
         if self.show_wireless {
             self.wireless_panel(ui);
             ui.add_space(12.0);
         }
         self.open_windows(ui);
+        self.workspaces(ui);
         if !status.available {
             self.adb_missing(ui);
         } else if devices.is_empty() {
@@ -485,7 +500,92 @@ impl App {
         }
     }
 
-    fn open_windows(&self, ui: &mut Ui) {
+    fn workspaces(&mut self, ui: &mut Ui) {
+        let saved = self.core.settings.lock().unwrap().workspaces.clone();
+        if saved.is_empty() {
+            return;
+        }
+        section_title(ui, "Workspaces");
+        let online: Vec<String> = self.core.registry.devices().into_iter().filter(|device| device.state == DeviceState::Online).map(|device| device.serial).collect();
+        theme::card(ui, |ui| {
+            for (index, workspace) in saved.iter().enumerate() {
+                if index > 0 {
+                    row_divider(ui);
+                }
+                let ready = workspace.windows.iter().filter(|window| online.contains(&window.serial)).count();
+                let count = workspace.windows.len();
+                let hint = if ready == count { format!("{count} windows") } else { format!("{ready} of {count} windows, the phone is not connected") };
+                setting_row(ui, &workspace.name, &hint, |ui| {
+                    if theme::button(ui, ButtonKind::Quiet, "Delete", true).clicked() {
+                        let name = workspace.name.clone();
+                        self.core.update_settings(|settings| settings.workspaces.retain(|existing| existing.name != name));
+                    }
+                    if theme::button(ui, ButtonKind::Primary, "Open", ready > 0).clicked() {
+                        self.core.open_workspace(ui.ctx(), workspace);
+                    }
+                });
+            }
+        });
+        ui.add_space(14.0);
+    }
+
+    /// Lets the user pick a phone when several are connected, and returns the selected one.
+    fn device_picker_header(&mut self, ui: &mut Ui, title: &str, subtitle: &str) -> Option<String> {
+        let devices: Vec<Device> = self.visible_devices().into_iter().filter(|d| d.state == DeviceState::Online).collect();
+        if !devices.iter().any(|device| Some(&device.serial) == self.selected_serial.as_ref()) {
+            self.selected_serial = devices.first().map(|device| device.serial.clone());
+        }
+        page_header(ui, title, subtitle, |ui| {
+            if devices.len() > 1 {
+                let selected = devices.iter().find(|d| Some(&d.serial) == self.selected_serial.as_ref()).map_or_else(String::new, device_name);
+                ComboBox::from_id_salt("device").selected_text(selected).show_ui(ui, |ui| {
+                    for device in &devices {
+                        ui.selectable_value(&mut self.selected_serial, Some(device.serial.clone()), device_name(device));
+                    }
+                });
+            }
+        });
+        let serial = self.selected_serial.clone();
+        if serial.is_none() {
+            ui.add_space(40.0);
+            ui.vertical_centered(|ui| {
+                ui.label(RichText::new("No phone connected").font(semibold(16.0)));
+                ui.weak("Plug in your phone to use this page");
+            });
+        }
+        serial
+    }
+
+    fn files_page(&mut self, ui: &mut Ui) {
+        if let Some(serial) = self.device_picker_header(ui, "Files", "Browse your phone's storage and copy files") {
+            self.files.show(ui, &self.core, &serial);
+        }
+    }
+
+    fn notifications_page(&mut self, ui: &mut Ui) {
+        if let Some(serial) = self.device_picker_header(ui, "Notifications", "Open an app to reply") {
+            self.notifications.show(ui, &self.core, &serial);
+        }
+    }
+
+    fn app_menu(&self, ui: &mut Ui, app: &AppInfo) {
+        let package = Some(app.package.as_str());
+        let profile = self.core.profile(package);
+        ui.weak("Quality for this app");
+        let choices = [(None, "Same as Settings"), (Some(Quality::Smooth), "Smooth"), (Some(Quality::Balanced), "Balanced"), (Some(Quality::Sharp), "Sharp")];
+        for (quality, label) in choices {
+            if ui.selectable_label(profile.quality == quality, label).clicked() {
+                self.core.update_profile(package, |profile| profile.quality = quality);
+                ui.close();
+            }
+        }
+        if profile.position.is_some() && ui.button("Forget window position").clicked() {
+            self.core.update_profile(package, |profile| profile.position = None);
+            ui.close();
+        }
+    }
+
+    fn open_windows(&mut self, ui: &mut Ui) {
         let phones = self.core.phones();
         if phones.is_empty() {
             return;
@@ -513,6 +613,16 @@ impl App {
                     });
                 });
             }
+            row_divider(ui);
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                ui.add(TextEdit::singleline(&mut self.workspace_name).hint_text("Name these windows").desired_width(220.0).margin(vec2(10.0, 9.0)));
+                let name = self.workspace_name.trim().to_string();
+                if theme::button(ui, ButtonKind::Secondary, "Save as workspace", !name.is_empty()).clicked() {
+                    self.core.save_workspace(&name);
+                    self.workspace_name.clear();
+                }
+            });
         });
         ui.add_space(14.0);
     }
@@ -799,28 +909,7 @@ impl App {
 
     fn apps_page(&mut self, ui: &mut Ui) {
         let colors = palette(ui);
-        let devices: Vec<Device> = self.visible_devices().into_iter().filter(|d| d.state == DeviceState::Online).collect();
-        if !devices.iter().any(|device| Some(&device.serial) == self.selected_serial.as_ref()) {
-            self.selected_serial = devices.first().map(|device| device.serial.clone());
-        }
-        page_header(ui, "Apps", "Each app opens in its own phone-shaped window", |ui| {
-            if devices.len() > 1 {
-                let selected = devices.iter().find(|d| Some(&d.serial) == self.selected_serial.as_ref()).map_or_else(String::new, device_name);
-                ComboBox::from_id_salt("device").selected_text(selected).show_ui(ui, |ui| {
-                    for device in &devices {
-                        ui.selectable_value(&mut self.selected_serial, Some(device.serial.clone()), device_name(device));
-                    }
-                });
-            }
-        });
-        let Some(serial) = self.selected_serial.clone() else {
-            ui.add_space(40.0);
-            ui.vertical_centered(|ui| {
-                ui.label(RichText::new("No phone connected").font(semibold(16.0)));
-                ui.weak("Connect a phone to see its apps");
-            });
-            return;
-        };
+        let Some(serial) = self.device_picker_header(ui, "Apps", "Each app opens in its own window. Right-click one for its own quality") else { return };
         self.load_apps_if_needed(ui.ctx(), &serial);
 
         let list = self.app_list.lock().unwrap();
@@ -884,9 +973,11 @@ impl App {
                 ui.horizontal(|ui| {
                     for app in matching.iter().skip(row * columns).take(columns) {
                         let open = phones.iter().any(|phone| phone.shows(&serial, Some(&app.package)));
-                        if app_tile(ui, app, tile_width, open, colors) {
+                        let response = app_tile(ui, app, tile_width, open, colors);
+                        if response.clicked() {
                             chosen = Some((*app).clone());
                         }
+                        response.context_menu(|ui| self.app_menu(ui, app));
                     }
                 });
             }
@@ -940,7 +1031,7 @@ impl App {
     }
 }
 
-fn app_tile(ui: &mut Ui, app: &AppInfo, width: f32, open: bool, colors: &Palette) -> bool {
+fn app_tile(ui: &mut Ui, app: &AppInfo, width: f32, open: bool, colors: &Palette) -> egui::Response {
     let (rect, response) = ui.allocate_exact_size(vec2(width, TILE_HEIGHT), Sense::click());
     if ui.is_rect_visible(rect) {
         let hover = ui.ctx().animate_bool_responsive(response.id, response.hovered());
@@ -964,7 +1055,7 @@ fn app_tile(ui: &mut Ui, app: &AppInfo, width: f32, open: bool, colors: &Palette
             ui.painter().galley(pos2(text_left, rect.center().y - galley.size().y / 2.0), galley, colors.foreground);
         }
     }
-    response.on_hover_cursor(CursorIcon::PointingHand).clicked()
+    response.on_hover_cursor(CursorIcon::PointingHand)
 }
 
 fn section_settings(ui: &mut Ui, settings: &mut Settings, adb_version: Option<String>) {
@@ -1009,6 +1100,10 @@ fn section_settings(ui: &mut Ui, settings: &mut Settings, adb_version: Option<St
         setting_row(ui, "Clipboard sync", "Text copied on either side, including passwords, reaches the other", |ui| {
             theme::switch(ui, &mut settings.clipboard_sync);
         });
+        row_divider(ui);
+        setting_row(ui, "Phone notifications", "Read only while the Notifications page is open, and never saved", |ui| {
+            theme::switch(ui, &mut settings.notifications);
+        });
     });
     ui.add_space(14.0);
 
@@ -1023,7 +1118,7 @@ impl eframe::App for App {
         let ctx = ui.ctx().clone();
         ctx.set_theme(if self.core.settings.lock().unwrap().dark { Theme::Dark } else { Theme::Light });
 
-        for (key, page) in [(Key::Num1, Page::Devices), (Key::Num2, Page::Apps), (Key::Num3, Page::Settings)] {
+        for (key, page) in [(Key::Num1, Page::Devices), (Key::Num2, Page::Apps), (Key::Num3, Page::Files), (Key::Num4, Page::Notifications), (Key::Num5, Page::Settings)] {
             if ctx.input_mut(|input| input.consume_key(Modifiers::COMMAND, key)) {
                 self.go_to(page);
             }
@@ -1049,6 +1144,8 @@ impl eframe::App for App {
                     ScrollArea::vertical().auto_shrink(false).show(ui, |ui| self.devices_page(ui));
                 }
                 Page::Apps => self.apps_page(ui),
+                Page::Files => self.files_page(ui),
+                Page::Notifications => self.notifications_page(ui),
                 Page::Settings => {
                     ScrollArea::vertical().auto_shrink(false).show(ui, |ui| self.settings_page(ui));
                 }
@@ -1076,17 +1173,6 @@ mod tests {
         let token = hex_token(4);
         assert_eq!(token.len(), 8);
         assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
-    }
-
-    #[test]
-    fn presets_are_recognized_and_applied() {
-        let mut options = MirrorOptions::default();
-        assert_eq!(quality_of(&options), Quality::Balanced);
-        apply_quality(&mut options, Quality::Sharp);
-        assert_eq!((options.max_size, options.bit_rate), (0, 16_000_000));
-        assert_eq!(quality_of(&options), Quality::Sharp);
-        options.max_fps = 120;
-        assert_eq!(quality_of(&options), Quality::Custom);
     }
 
     #[test]

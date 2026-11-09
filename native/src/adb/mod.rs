@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod connection;
 pub mod device;
+pub mod notifications;
 pub mod setup;
 pub mod wireless;
 

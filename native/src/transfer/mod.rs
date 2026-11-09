@@ -1,3 +1,5 @@
+pub mod files;
+
 use std::ffi::OsString;
 use std::path::Path;
 use std::time::Duration;

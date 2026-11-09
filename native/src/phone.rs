@@ -24,6 +24,7 @@ use crate::input::{
 use crate::mirroring::StartRequest;
 use crate::mirroring::apps::validate_package;
 use crate::mirroring::protocol::ControlMessage;
+use crate::profiles::{KeyBinding, WorkspaceWindow, apply_quality, binding_at, set_binding};
 use crate::state::Core;
 use crate::theme::{self, ButtonKind};
 use crate::transfer::{self, TransferAction, TransferResult};
@@ -35,6 +36,14 @@ const MIN_SIZE: [f32; 2] = [180.0, 240.0];
 const STRIP_COLOR: Color32 = Color32::from_rgb(16, 19, 22);
 const RECORD_COLOR: Color32 = Color32::from_rgb(239, 68, 68);
 const ACTIVE_COLOR: Color32 = Color32::from_rgb(52, 211, 153);
+const KEY_MARK_RADIUS: f32 = 16.0;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum KeyMode {
+    Off,
+    Play,
+    Edit,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Status {
@@ -54,6 +63,11 @@ struct State {
     fullscreen: bool,
     went_offline: bool,
     closed: bool,
+    position: Option<[f32; 2]>,
+    key_mode: KeyMode,
+    pending_spot: Option<[f32; 2]>,
+    bindings: Vec<KeyBinding>,
+    held: Vec<usize>,
 }
 
 enum Action {
@@ -64,6 +78,8 @@ enum Action {
     ToggleFullscreen,
     Close,
     Reconnect,
+    ToggleKeys,
+    EditKeys,
 }
 
 #[derive(Clone, Copy)]
@@ -76,6 +92,8 @@ enum Icon {
     Recents,
     Home,
     Back,
+    Keys,
+    Target,
 }
 
 fn paint_icon(painter: &Painter, icon: Icon, center: Pos2, color: Color32) {
@@ -120,6 +138,20 @@ fn paint_icon(painter: &Painter, icon: Icon, center: Pos2, color: Color32) {
         Icon::Back => {
             painter.line_segment([at(3.0, -6.0), at(-3.5, 0.0)], stroke);
             painter.line_segment([at(-3.5, 0.0), at(3.0, 6.0)], stroke);
+        }
+        Icon::Keys => {
+            outline([15.0, 10.0], [0.0, 0.0]);
+            for x in [-3.5, 0.0, 3.5] {
+                painter.circle_filled(at(x, -1.5), 0.9, color);
+            }
+            painter.line_segment([at(-3.5, 2.0), at(3.5, 2.0)], stroke);
+        }
+        Icon::Target => {
+            painter.circle_stroke(center, 5.0, stroke);
+            painter.line_segment([at(-8.0, 0.0), at(-2.0, 0.0)], stroke);
+            painter.line_segment([at(2.0, 0.0), at(8.0, 0.0)], stroke);
+            painter.line_segment([at(0.0, -8.0), at(0.0, -2.0)], stroke);
+            painter.line_segment([at(0.0, 2.0), at(0.0, 8.0)], stroke);
         }
     }
 }
@@ -172,6 +204,11 @@ fn timestamped(folder: Option<PathBuf>, prefix: &str, extension: &str) -> Result
     Ok(folder.join(format!("{prefix}-{stamp}.{extension}")))
 }
 
+fn binding_point(binding: &KeyBinding, video: [u32; 2]) -> (i32, i32) {
+    let along = |fraction: f32, side: u32| ((fraction * side as f32).round() as i32).clamp(0, side as i32 - 1);
+    (along(binding.x, video[0]), along(binding.y, video[1]))
+}
+
 impl Phone {
     pub fn new(
         core: Arc<Core>,
@@ -183,6 +220,7 @@ impl Phone {
         position: Pos2,
     ) -> Arc<Self> {
         let audio = core.settings.lock().unwrap().options.audio && package.is_none();
+        let bindings = core.profile(package.as_deref()).keys;
         let key = format!("phone-{number}");
         Arc::new(Self {
             id: ViewportId::from_hash_of(&key),
@@ -205,6 +243,11 @@ impl Phone {
                 fullscreen: false,
                 went_offline: false,
                 closed: false,
+                position: None,
+                key_mode: KeyMode::Off,
+                pending_spot: None,
+                bindings,
+                held: Vec::new(),
             }),
         })
     }
@@ -221,12 +264,34 @@ impl Phone {
         &self.title
     }
 
+    pub fn as_workspace_window(&self) -> WorkspaceWindow {
+        WorkspaceWindow {
+            serial: self.serial.clone(),
+            package: self.package.clone(),
+            title: self.title.clone(),
+            position: self.state.lock().unwrap().position,
+        }
+    }
+
     /// A short state for lists, and whether the picture is live.
     pub fn status_text(&self) -> (&'static str, bool) {
         match self.state.lock().unwrap().status {
             Status::Starting => ("Connecting", false),
             Status::Streaming => ("Live", true),
             Status::Ended => ("Disconnected", false),
+        }
+    }
+
+    /// Debug builds can show a blank picture, so input modes can be tried without a phone.
+    #[cfg(debug_assertions)]
+    pub fn show_sample_picture(&self, editing_keys: bool) {
+        let image = egui::ColorImage::filled([1, 1], Color32::from_gray(40));
+        self.video.set_sample_size([1080, 2400]);
+        let mut state = self.state.lock().unwrap();
+        state.status = Status::Streaming;
+        state.texture = Some(self.ctx.load_texture(&self.key, image, TextureOptions::LINEAR));
+        if editing_keys {
+            state.key_mode = KeyMode::Edit;
         }
     }
 
@@ -306,6 +371,9 @@ impl Phone {
         }
         let server_path = self.core.server_path()?;
         let mut options = self.core.settings.lock().unwrap().options;
+        if let Some(quality) = self.core.profile(self.package.as_deref()).quality {
+            apply_quality(&mut options, quality);
+        }
         options.audio = self.state.lock().unwrap().audio;
 
         let context = self.ctx.clone();
@@ -349,7 +417,14 @@ impl Phone {
     }
 
     pub fn close(self: &Arc<Self>) {
-        self.state.lock().unwrap().closed = true;
+        let position = {
+            let mut state = self.state.lock().unwrap();
+            state.closed = true;
+            state.position
+        };
+        if position.is_some() {
+            self.core.update_profile(self.package.as_deref(), |profile| profile.position = position);
+        }
         self.core.forget_phone(self.id);
         let phone = self.clone();
         thread::spawn(move || {
@@ -434,6 +509,23 @@ impl Phone {
             }
             Action::Close => self.close(),
             Action::Reconnect => self.start(),
+            Action::ToggleKeys => {
+                let mut state = self.state.lock().unwrap();
+                state.key_mode = if state.key_mode == KeyMode::Play { KeyMode::Off } else { KeyMode::Play };
+                self.release_held_keys(&mut state);
+            }
+            Action::EditKeys => {
+                let editing = {
+                    let mut state = self.state.lock().unwrap();
+                    state.key_mode = if state.key_mode == KeyMode::Edit { KeyMode::Off } else { KeyMode::Edit };
+                    state.pending_spot = None;
+                    self.release_held_keys(&mut state);
+                    state.key_mode == KeyMode::Edit
+                };
+                if editing {
+                    self.set_notice("Click a spot, then press a key. Click a mark to remove it.");
+                }
+            }
         }
     }
 
@@ -448,6 +540,9 @@ impl Phone {
         {
             let mut guard = self.state.lock().unwrap();
             let state = &mut *guard;
+            if let Some(rect) = ctx.input(|input| input.viewport().outer_rect) {
+                state.position = Some([rect.min.x, rect.min.y]);
+            }
             if let Some(image) = self.video.take_latest() {
                 match &mut state.texture {
                     Some(texture) => texture.set(image, TextureOptions::LINEAR),
@@ -531,6 +626,15 @@ impl Phone {
                 button(ui, Icon::Recents, "Recent apps", None, streaming, Action::Key(KEYCODE_APP_SWITCH));
                 button(ui, Icon::Home, "Home", None, streaming, Action::Key(KEYCODE_HOME));
             }
+            button(ui, Icon::Target, "Edit key mapping", (state.key_mode == KeyMode::Edit).then_some(ACTIVE_COLOR), streaming, Action::EditKeys);
+            button(
+                ui,
+                Icon::Keys,
+                "Use mapped keys",
+                (state.key_mode == KeyMode::Play).then_some(ACTIVE_COLOR),
+                streaming && !state.bindings.is_empty(),
+                Action::ToggleKeys,
+            );
             button(ui, Icon::Back, "Back", None, streaming, Action::Key(KEYCODE_BACK));
             ui.add_space(4.0);
             ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
@@ -549,6 +653,7 @@ impl Phone {
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
             ui.painter().image(texture.id(), rect, uv, Color32::WHITE);
             self.handle_input(ui, rect, size, state, actions);
+            self.paint_key_marks(ui, rect, state);
 
             let dropped: Vec<PathBuf> = ui.input(|input| {
                 input.raw.dropped_files.iter().map(|file| file.path().to_path_buf()).collect()
@@ -598,10 +703,14 @@ impl Phone {
 
     fn touch(&self, action: u8, position: Pos2, rect: Rect, video: [u32; 2]) {
         let (x, y) = to_video_point(position, rect, video);
+        self.finger(action, POINTER_ID_FINGER, x, y, video);
+    }
+
+    fn finger(&self, action: u8, pointer_id: i64, x: i32, y: i32, video: [u32; 2]) {
         let pressure = if action == ACTION_UP { 0.0 } else { 1.0 };
         self.send(&ControlMessage::Touch {
             action,
-            pointer_id: POINTER_ID_FINGER,
+            pointer_id,
             x,
             y,
             width: video[0] as u16,
@@ -613,10 +722,101 @@ impl Phone {
         });
     }
 
+    /// Each mapped key is its own finger, so several can be held at once.
+    fn mapped_touch(&self, index: usize, action: u8, bindings: &[KeyBinding], video: [u32; 2]) {
+        let (x, y) = binding_point(&bindings[index], video);
+        self.finger(action, index as i64 + 1, x, y, video);
+    }
+
+    fn release_held_keys(&self, state: &mut State) {
+        let video = self.video.size();
+        for index in std::mem::take(&mut state.held) {
+            self.mapped_touch(index, ACTION_UP, &state.bindings, video);
+        }
+    }
+
+    fn save_bindings(&self, bindings: Vec<KeyBinding>) {
+        self.core.update_profile(self.package.as_deref(), |profile| profile.keys = bindings);
+    }
+
+    fn edit_bindings(&self, event: &Event, rect: Rect, state: &mut State) {
+        match event {
+            Event::PointerButton { pos, button: PointerButton::Primary, pressed: true, .. } if rect.contains(*pos) => {
+                let spot = [(pos.x - rect.left()) / rect.width(), (pos.y - rect.top()) / rect.height()];
+                match binding_at(&state.bindings, spot, [rect.width(), rect.height()], KEY_MARK_RADIUS) {
+                    Some(index) => {
+                        state.bindings.remove(index);
+                        state.pending_spot = None;
+                        self.save_bindings(state.bindings.clone());
+                    }
+                    None => state.pending_spot = Some(spot),
+                }
+            }
+            Event::Key { key: Key::Escape, pressed: true, .. } => state.pending_spot = None,
+            Event::Key { key, pressed: true, repeat: false, .. } => {
+                if let Some(spot) = state.pending_spot.take() {
+                    set_binding(&mut state.bindings, key.name(), spot);
+                    self.save_bindings(state.bindings.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Returns true when the event belongs to key mapping and must not reach the phone.
+    fn key_mapping_event(&self, event: &Event, rect: Rect, video: [u32; 2], state: &mut State) -> bool {
+        match state.key_mode {
+            KeyMode::Off => false,
+            KeyMode::Edit => {
+                self.edit_bindings(event, rect, state);
+                true
+            }
+            KeyMode::Play => match event {
+                Event::Key { key, pressed, repeat, .. } => {
+                    let Some(index) = state.bindings.iter().position(|binding| binding.key == key.name()) else { return false };
+                    let holding = state.held.contains(&index);
+                    if *pressed && !*repeat && !holding {
+                        state.held.push(index);
+                        self.mapped_touch(index, ACTION_DOWN, &state.bindings, video);
+                    } else if !*pressed && holding {
+                        state.held.retain(|held| *held != index);
+                        self.mapped_touch(index, ACTION_UP, &state.bindings, video);
+                    }
+                    true
+                }
+                Event::Text(_) => true,
+                Event::WindowFocused(false) => {
+                    self.release_held_keys(state);
+                    false
+                }
+                _ => false,
+            },
+        }
+    }
+
+    fn paint_key_marks(&self, ui: &Ui, rect: Rect, state: &State) {
+        if state.key_mode == KeyMode::Off {
+            return;
+        }
+        let at = |x: f32, y: f32| pos2(rect.left() + x * rect.width(), rect.top() + y * rect.height());
+        let fill = Color32::from_black_alpha(if state.key_mode == KeyMode::Edit { 170 } else { 90 });
+        for binding in &state.bindings {
+            let center = at(binding.x, binding.y);
+            ui.painter().circle(center, KEY_MARK_RADIUS, fill, Stroke::new(1.5, ACTIVE_COLOR));
+            ui.painter().text(center, egui::Align2::CENTER_CENTER, &binding.key, egui::FontId::proportional(11.0), Color32::WHITE);
+        }
+        if let Some([x, y]) = state.pending_spot {
+            ui.painter().circle_stroke(at(x, y), KEY_MARK_RADIUS, Stroke::new(2.0, Color32::WHITE));
+        }
+    }
+
     fn handle_input(&self, ui: &mut Ui, rect: Rect, video: [u32; 2], state: &mut State, actions: &mut Vec<Action>) {
         let ctx = ui.ctx().clone();
         let hover = ctx.input(|input| input.pointer.hover_pos());
         for event in ctx.input(|input| input.events.clone()) {
+            if self.key_mapping_event(&event, rect, video, state) {
+                continue;
+            }
             match event {
                 Event::PointerButton { pos, button: PointerButton::Primary, pressed, .. } => {
                     if pressed && rect.contains(pos) {
@@ -688,6 +888,15 @@ mod tests {
 
     fn result(name: &str, action: TransferAction) -> TransferResult {
         TransferResult { name: name.to_string(), action }
+    }
+
+    #[test]
+    fn a_mapped_key_taps_the_same_part_of_any_resolution() {
+        let binding = KeyBinding { key: "W".to_string(), x: 0.5, y: 0.25 };
+        assert_eq!(binding_point(&binding, [1080, 2400]), (540, 600));
+        assert_eq!(binding_point(&binding, [720, 1600]), (360, 400));
+        let corner = KeyBinding { key: "A".to_string(), x: 1.0, y: 1.0 };
+        assert_eq!(binding_point(&corner, [1080, 2400]), (1079, 2399));
     }
 
     #[test]

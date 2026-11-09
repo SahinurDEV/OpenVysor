@@ -54,6 +54,11 @@ impl Video {
         self.latest.lock().unwrap().take()
     }
 
+    #[cfg(debug_assertions)]
+    pub fn set_sample_size(&self, size: [u32; 2]) {
+        *self.size.lock().unwrap() = size;
+    }
+
     pub fn size(&self) -> [u32; 2] {
         *self.size.lock().unwrap()
     }

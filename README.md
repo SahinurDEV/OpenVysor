@@ -49,6 +49,11 @@ One small native Rust app. No account, no cloud, no root.
 | Clipboard sync, and drag and drop for APKs and files | 🧪 Written, being tested |
 | Phone sound on your computer | 🧪 Written, being tested |
 | Screenshots and MP4 recording | 🧪 Written, being tested |
+| Workspaces, per-app quality and remembered positions | 🧪 Written, being tested |
+| Key mapping for games | 🧪 Written, being tested |
+| File browser with download and upload | 🧪 Written, being tested |
+| Phone notifications (optional, read-only) | 🧪 Written, being tested |
+| Tray icon and global shortcut (Windows and macOS) | 🧪 Written, being tested |
 
 The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
@@ -97,6 +102,8 @@ Android's `adb` tool for you with one click. To install it yourself instead:
 | Middle click | Home |
 | Scroll wheel | Scroll under the pointer |
 | `F11` | Full screen |
+| `Ctrl` + `1`–`5` | Switch pages in the main window |
+| `Ctrl` + `Shift` + `O` | Bring OpenVysor forward from anywhere (`Cmd` on macOS) |
 | `Alt` + `←` / `→` | Previous or next phone window |
 | Drop a file on a window | Install an APK, or send a file to Download |
 

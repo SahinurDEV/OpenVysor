@@ -1,9 +1,11 @@
 # OpenVysor
 
-Free, open-source Android screen mirroring and control for Windows 10 and 11.
+Free, open-source Android screen mirroring and control for Windows, macOS and Linux.
 
-**Status: early development.** Current progress is in
-[docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
+**Status: early development.** Current progress, including what has been tested on each
+platform, is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
+
+- [Download and install the native app](docs/PLATFORM_SETUP.md)
 
 OpenVysor uses [scrcpy-server](https://github.com/Genymobile/scrcpy) for capture and input,
 with its own Rust client and a Tauri 2 and React interface. Video appears inside the app.

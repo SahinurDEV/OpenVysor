@@ -1,4 +1,4 @@
-//! Plays the phone's raw 48 kHz stereo PCM through the default Windows output.
+//! Plays the phone's raw 48 kHz stereo PCM through the default system output.
 
 use std::collections::VecDeque;
 use std::sync::mpsc::{self, Sender};

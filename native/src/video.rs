@@ -121,7 +121,7 @@ fn decode_loop(packets: Receiver<Vec<u8>>, video: Arc<Video>, repaint: Repaint) 
     let mut decoder = match Decoder::new() {
         Ok(decoder) => decoder,
         Err(error) => {
-            *video.error.lock().unwrap() = Some(format!("the Windows H.264 decoder failed to start: {error}"));
+            *video.error.lock().unwrap() = Some(format!("the H.264 decoder failed to start: {error}"));
             repaint();
             return;
         }

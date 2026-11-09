@@ -13,6 +13,7 @@ fn main() -> eframe::Result {
     env_logger::builder().filter_level(log::LevelFilter::Warn).init();
     let mut viewport = ViewportBuilder::default()
         .with_title("OpenVysor")
+        .with_app_id("openvysor")
         .with_inner_size([1040.0, 680.0])
         .with_min_inner_size([760.0, 520.0]);
     if let Ok(icon) = eframe::icon_data::from_png_bytes(include_bytes!("../resources/icon.png")) {

@@ -1,0 +1,82 @@
+# Pushing a tag such as v0.3.0 publishes a GitHub release. Running this by hand
+# builds the same packages and keeps them as workflow artifacts only.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: windows-x64, os: windows-latest }
+          - { platform: linux-x64, os: ubuntu-22.04 }
+          - { platform: macos-x64, os: macos-15-intel }
+          - { platform: macos-arm64, os: macos-latest }
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check that the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"$/\1/p' native/Cargo.toml | head -n 1)"
+          case "${GITHUB_REF_NAME#v}" in
+            "$version" | "$version"-*) ;;
+            *) echo "Tag $GITHUB_REF_NAME does not match version $version"; exit 1 ;;
+          esac
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --no-self-update && rustup default stable
+      - name: Install Linux build libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev nasm pkg-config
+      - name: Install NASM on Intel macOS
+        if: matrix.platform == 'macos-x64'
+        run: brew install nasm
+      - name: Build
+        working-directory: native
+        run: cargo build --release --locked
+      - name: Package
+        shell: bash
+        run: bash scripts/package-native.sh "${{ matrix.platform }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          if-no-files-found: error
+          path: |
+            dist-release/*.zip
+            dist-release/*.tar.gz
+
+  publish:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: packages
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd packages
+          sha256sum * > SHA256SUMS.txt
+          prerelease=""
+          case "$GITHUB_REF_NAME" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$GITHUB_REF_NAME" * \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes \
+            $prerelease

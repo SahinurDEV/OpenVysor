@@ -168,11 +168,27 @@ fn state_label(state: DeviceState) -> &'static str {
     }
 }
 
+const NO_PERMISSION_HELP: &str = if cfg!(windows) {
+    "Windows could not open this device. Reinstall its USB driver."
+} else if cfg!(target_os = "linux") {
+    "Linux blocked access to this phone. Install your distribution's Android udev rules, then replug the cable."
+} else {
+    "This computer could not open the phone. Replug the cable."
+};
+
+const ADB_INSTALL_COMMAND: &str = if cfg!(windows) {
+    "winget install Google.PlatformTools"
+} else if cfg!(target_os = "macos") {
+    "brew install android-platform-tools"
+} else {
+    "sudo apt install adb"
+};
+
 fn state_help(state: DeviceState) -> Option<&'static str> {
     match state {
         DeviceState::Unauthorized => Some("Unlock your phone and tap Allow on the “Allow USB debugging?” prompt."),
         DeviceState::Offline => Some("The phone is not responding. Replug the cable or toggle USB debugging."),
-        DeviceState::NoPermissions => Some("Windows could not open this device. Reinstall its USB driver."),
+        DeviceState::NoPermissions => Some(NO_PERMISSION_HELP),
         _ => None,
     }
 }
@@ -410,7 +426,7 @@ impl App {
             ui.add_space(4.0);
             Frame::NONE.fill(palette(ui).muted).corner_radius(8).inner_margin(Margin::same(10)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
-                ui.add(Label::new(RichText::new("winget install Google.PlatformTools").monospace()));
+                ui.add(Label::new(RichText::new(ADB_INSTALL_COMMAND).monospace()));
             });
         });
     }

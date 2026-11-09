@@ -5,3 +5,7 @@ This product bundles scrcpy-server 4.1 (https://github.com/Genymobile/scrcpy),
 unmodified, under the Apache License, Version 2.0.
 Copyright (C) 2018 Genymobile
 Copyright (C) 2018-2026 Romain Vimont
+
+The macOS and Linux builds include OpenH264 (https://www.openh264.org/),
+compiled from source, under the BSD 2-Clause License.
+Copyright (c) 2013, Cisco Systems

@@ -319,21 +319,19 @@ fn spawn_server(
     job: Option<&JobObject>,
     log: ServerLog,
 ) -> Result<Child> {
-    let mut child = adb
-        .command()
+    let mut command = adb.command();
+    command
         .args(["-s", serial, "shell"])
         .args(copy_and_set_classpath(&format!("/data/local/tmp/openvysor-{scid:08x}.jar")))
         .args(["app_process", "/", "com.genymobile.scrcpy.Server", SCRCPY_VERSION])
         .args(options.server_args(scid, app_window))
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    if let Some(job) = job {
-        if let Err(error) = job.assign(&child) {
-            log::warn!("could not assign the server process to the job: {error}");
-        }
-    }
+        .stderr(Stdio::piped());
+    let mut child = match job {
+        Some(job) => job.spawn(&mut command)?,
+        None => command.spawn()?,
+    };
     capture_output(child.stdout.take(), log.clone());
     capture_output(child.stderr.take(), log);
     Ok(child)

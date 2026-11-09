@@ -20,6 +20,7 @@ const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// Builds a `Command` that never flashes a console window on Windows.
 pub fn hidden_command(program: &Path) -> Command {
+    #[cfg_attr(not(windows), allow(unused_mut))]
     let mut command = Command::new(program);
     #[cfg(windows)]
     {
@@ -142,7 +143,7 @@ fn drain<R: Read + Send + 'static>(source: Option<R>) -> mpsc::Receiver<Vec<u8>>
 }
 
 fn candidate_paths() -> Vec<PathBuf> {
-    let exe = "adb.exe";
+    let exe = if cfg!(windows) { "adb.exe" } else { "adb" };
     let mut paths = Vec::new();
     if let Some(path) = std::env::var_os("OPENVYSOR_ADB") {
         paths.push(PathBuf::from(path));
@@ -171,6 +172,15 @@ fn candidate_paths() -> Vec<PathBuf> {
                 }
             }
         }
+    }
+    // Apps opened from the desktop do not get the PATH set in a shell profile.
+    #[cfg(not(windows))]
+    {
+        if let Some(home) = dirs::home_dir() {
+            paths.push(home.join("Library/Android/sdk/platform-tools").join(exe));
+            paths.push(home.join("Android/Sdk/platform-tools").join(exe));
+        }
+        paths.extend(["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"].map(|dir| Path::new(dir).join(exe)));
     }
     paths
 }

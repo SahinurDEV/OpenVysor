@@ -10,9 +10,9 @@ use super::device::{ConnectionType, Device, DeviceDetails, DeviceState, parse_de
 use super::{Adb, DEFAULT_TIMEOUT};
 use crate::error::{AppError, Result};
 
-const POLL_INTERVAL: Duration = Duration::from_secs(2);
-/// Device details (mainly battery) are refreshed every 15 polls, about 30 seconds.
-const DETAILS_REFRESH_TICKS: u64 = 15;
+const POLL_INTERVAL: Duration = Duration::from_secs(1);
+/// Device details (mainly battery) are refreshed every 30 polls, about 30 seconds.
+const DETAILS_REFRESH_TICKS: u64 = 30;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -91,11 +91,19 @@ struct DetailsCache {
 }
 
 impl DetailsCache {
-    fn apply(&mut self, adb: &Adb, devices: &mut [Device], tick: u64) {
+    fn fill(&mut self, devices: &mut [Device]) {
         self.entries.retain(|serial, _| {
             devices.iter().any(|d| &d.serial == serial && d.state == DeviceState::Online)
         });
         for device in devices.iter_mut().filter(|d| d.state == DeviceState::Online) {
+            device.details = self.entries.get(&device.serial).map(|(details, _)| details.clone());
+        }
+    }
+
+    /// Fetches what is missing or old, and reports whether anything was fetched.
+    fn refresh(&mut self, adb: &Adb, devices: &[Device], tick: u64) -> bool {
+        let mut fetched = false;
+        for device in devices.iter().filter(|d| d.state == DeviceState::Online) {
             let stale = self
                 .entries
                 .get(&device.serial)
@@ -104,20 +112,14 @@ impl DetailsCache {
                 match fetch_details(adb, &device.serial) {
                     Ok(details) => {
                         self.entries.insert(device.serial.clone(), (details, tick));
+                        fetched = true;
                     }
                     Err(error) => log::warn!("details for {}: {error}", device.serial),
                 }
             }
-            device.details = self.entries.get(&device.serial).map(|(details, _)| details.clone());
         }
+        fetched
     }
-}
-
-fn poll(adb: &Adb, cache: &mut DetailsCache, tick: u64) -> Result<Vec<Device>> {
-    let output = adb.run_text(&["devices", "-l"], DEFAULT_TIMEOUT)?;
-    let mut devices = parse_devices(&output);
-    cache.apply(adb, &mut devices, tick);
-    Ok(devices)
 }
 
 fn status_for(adb: &Adb, version: Option<String>, error: Option<String>) -> AdbStatus {
@@ -136,6 +138,11 @@ where
     F: Fn(&AdbStatus, &[Device]) + Send + 'static,
 {
     thread::spawn(move || {
+        let publish = |adb: Option<Adb>, status: AdbStatus, devices: Vec<Device>| {
+            if registry.store(adb, status.clone(), devices.clone()) {
+                on_change(&status, &devices);
+            }
+        };
         let mut cache = DetailsCache { entries: HashMap::new() };
         let mut located: Option<(Adb, Option<String>)> = None;
         let mut tick = 0u64;
@@ -151,21 +158,27 @@ where
                 }
             }
 
-            let (adb, status, devices) = match &located {
-                Some((adb, version)) => match poll(adb, &mut cache, tick) {
-                    Ok(devices) => (Some(adb.clone()), status_for(adb, version.clone(), None), devices),
+            match &located {
+                Some((adb, version)) => match adb.run_text(&["devices", "-l"], DEFAULT_TIMEOUT) {
+                    Ok(output) => {
+                        let mut devices = parse_devices(&output);
+                        let status = status_for(adb, version.clone(), None);
+                        cache.fill(&mut devices);
+                        // The phone can be used right away; its details follow.
+                        publish(Some(adb.clone()), status.clone(), devices.clone());
+                        if cache.refresh(adb, &devices, tick) {
+                            cache.fill(&mut devices);
+                            publish(Some(adb.clone()), status, devices);
+                        }
+                    }
                     Err(error) => {
                         log::warn!("adb poll failed: {error}");
                         let _ = adb.start_server();
                         let status = status_for(adb, version.clone(), Some(error.to_string()));
-                        (Some(adb.clone()), status, Vec::new())
+                        publish(Some(adb.clone()), status, Vec::new());
                     }
                 },
-                None => (None, AdbStatus::default(), Vec::new()),
-            };
-
-            if registry.store(adb, status.clone(), devices.clone()) {
-                on_change(&status, &devices);
+                None => publish(None, AdbStatus::default(), Vec::new()),
             }
             tick += 1;
             thread::sleep(POLL_INTERVAL);

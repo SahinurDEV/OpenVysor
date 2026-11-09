@@ -21,10 +21,9 @@ use crate::adb::commands::{create_forward, remove_forward};
 use crate::adb::Adb;
 use crate::error::{AppError, Result};
 
-pub(super) const DEVICE_SERVER_PATH: &str = "/data/local/tmp/scrcpy-server.jar";
 const PUSH_TIMEOUT: Duration = Duration::from_secs(30);
-const CONNECT_ATTEMPTS: u32 = 100;
-const CONNECT_RETRY_DELAY: Duration = Duration::from_millis(100);
+const CONNECT_ATTEMPTS: u32 = 500;
+const CONNECT_RETRY_DELAY: Duration = Duration::from_millis(20);
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(10);
 const SERVER_LOG_LINES: usize = 12;
 /// Size and density of the virtual display that hosts a single-app window.
@@ -91,6 +90,17 @@ impl MirrorOptions {
     }
 }
 
+/// The copy kept on the phone, pushed once per phone each time the app runs.
+fn stored_server_path() -> String {
+    format!("/data/local/tmp/openvysor-server-{SCRCPY_VERSION}.jar")
+}
+
+/// A running server deletes its own jar, so each launch runs a throwaway copy.
+/// The words go through adb's shell on the phone: they must stay free of user input.
+pub(super) fn copy_and_set_classpath(jar: &str) -> Vec<String> {
+    vec!["cp".to_string(), stored_server_path(), jar.to_string(), "&&".to_string(), format!("CLASSPATH={jar}")]
+}
+
 fn new_scid() -> u32 {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.subsec_nanos());
     let salt = std::process::id().wrapping_mul(2_654_435_761);
@@ -151,15 +161,12 @@ impl Session {
     pub fn start(
         adb: &Adb,
         serial: &str,
-        server_path: &Path,
         options: MirrorOptions,
         start_app: Option<&str>,
         job: Option<&JobObject>,
         parts: SessionParts,
     ) -> Result<Arc<Self>> {
         options.validate()?;
-        adb.start_server()?;
-        push_server(adb, serial, server_path)?;
 
         let scid = new_scid();
         let port = create_forward(adb, serial, &format!("scrcpy_{scid:08x}"))?;
@@ -295,7 +302,7 @@ pub(super) fn push_server(adb: &Adb, serial: &str, server_path: &Path) -> Result
             serial.as_ref(),
             "push".as_ref(),
             server_path.as_os_str(),
-            DEVICE_SERVER_PATH.as_ref(),
+            stored_server_path().as_ref(),
         ],
         PUSH_TIMEOUT,
     )
@@ -315,7 +322,7 @@ fn spawn_server(
     let mut child = adb
         .command()
         .args(["-s", serial, "shell"])
-        .arg(format!("CLASSPATH={DEVICE_SERVER_PATH}"))
+        .args(copy_and_set_classpath(&format!("/data/local/tmp/openvysor-{scid:08x}.jar")))
         .args(["app_process", "/", "com.genymobile.scrcpy.Server", SCRCPY_VERSION])
         .args(options.server_args(scid, app_window))
         .stdin(Stdio::null())

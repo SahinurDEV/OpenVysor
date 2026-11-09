@@ -10,6 +10,9 @@ use windows::core::Result;
 // MF_SDK_VERSION << 16 | MF_API_VERSION
 const MF_VERSION: u32 = 0x0002_0070;
 const BT709: u32 = 1;
+/// Below this many pixels, starting threads costs more than it saves.
+const PARALLEL_FROM_PIXELS: usize = 200_000;
+const MAX_CONVERT_THREADS: usize = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct OutputFormat {
@@ -22,6 +25,8 @@ pub struct Decoder {
     transform: IMFTransform,
     format: Option<OutputFormat>,
     output: Option<IMFSample>,
+    /// The newest decoded picture, not yet converted for display.
+    picture: Option<IMFSample>,
 }
 
 impl Decoder {
@@ -39,7 +44,7 @@ impl Decoder {
             input.SetGUID(&MF_MT_SUBTYPE, &MFVideoFormat_H264)?;
             transform.SetInputType(0, &input, 0)?;
 
-            let mut decoder = Self { transform, format: None, output: None };
+            let mut decoder = Self { transform, format: None, output: None, picture: None };
             decoder.negotiate_output()?;
             decoder.transform.ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0)?;
             decoder.transform.ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0)?;
@@ -67,8 +72,9 @@ impl Decoder {
             let bt709 = media_type.GetUINT32(&MF_MT_YUV_MATRIX).is_ok_and(|value| value == BT709);
             self.format = Some(OutputFormat { stride, plane_height: height, bt709 });
 
-            // Sized for the old format, so it cannot be used after a change.
+            // Sized for the old format, so these cannot be used after a change.
             self.output = None;
+            self.picture = None;
             Ok(())
         }
     }
@@ -83,9 +89,25 @@ impl Decoder {
         }
     }
 
-    /// Decodes one access unit in Annex B form. When a picture comes out, its
-    /// NV12 data is converted to `width` by `height` pixels in `out`.
-    pub fn decode(&mut self, data: &[u8], pts: u64, width: usize, height: usize, out: &mut Vec<Color32>) -> Result<bool> {
+    /// Converts the newest decoded picture into `out`, keeping one pixel in
+    /// `step` each way. Returns false if no new picture is waiting.
+    pub fn present(&mut self, width: usize, height: usize, step: usize, out: &mut Vec<Color32>) -> Result<bool> {
+        let (Some(sample), Some(format)) = (self.picture.take(), self.format) else { return Ok(false) };
+        unsafe {
+            let buffer = sample.GetBufferByIndex(0)?;
+            let mut source = std::ptr::null_mut();
+            let mut length = 0;
+            buffer.Lock(&mut source, None, Some(&mut length))?;
+            let data = std::slice::from_raw_parts(source, length as usize);
+            nv12_to_pixels(data, format.stride, format.plane_height, width, height, step, format.bt709, out);
+            buffer.Unlock()?;
+        }
+        Ok(true)
+    }
+
+    /// Decodes one access unit in Annex B form and reports whether a picture
+    /// came out. Only `present` pays for converting it, and only for the newest.
+    pub fn decode(&mut self, data: &[u8], pts: u64) -> Result<bool> {
         unsafe {
             let buffer = MFCreateMemoryBuffer(data.len() as u32)?;
             let mut target = std::ptr::null_mut();
@@ -104,15 +126,15 @@ impl Decoder {
                 if error.code() != MF_E_NOTACCEPTING {
                     return Err(error);
                 }
-                produced |= self.drain(width, height, out)?;
+                produced |= self.drain()?;
                 self.transform.ProcessInput(0, &sample, 0)?;
             }
-            produced |= self.drain(width, height, out)?;
+            produced |= self.drain()?;
             Ok(produced)
         }
     }
 
-    unsafe fn drain(&mut self, width: usize, height: usize, out: &mut Vec<Color32>) -> Result<bool> {
+    unsafe fn drain(&mut self) -> Result<bool> {
         unsafe {
             let mut produced = false;
             loop {
@@ -134,7 +156,7 @@ impl Decoder {
 
                 match result {
                     Ok(()) => {
-                        self.copy_picture(&sample, width, height, out)?;
+                        self.picture = Some(sample);
                         produced = true;
                     }
                     Err(error) if error.code() == MF_E_TRANSFORM_NEED_MORE_INPUT => {
@@ -148,53 +170,68 @@ impl Decoder {
         }
     }
 
-    unsafe fn copy_picture(&self, sample: &IMFSample, width: usize, height: usize, out: &mut Vec<Color32>) -> Result<()> {
-        let Some(format) = self.format else { return Ok(()) };
-        unsafe {
-            let buffer = sample.GetBufferByIndex(0)?;
-            let mut source = std::ptr::null_mut();
-            let mut length = 0;
-            buffer.Lock(&mut source, None, Some(&mut length))?;
-            let data = std::slice::from_raw_parts(source, length as usize);
-            nv12_to_pixels(data, format.stride, format.plane_height, width, height, format.bt709, out);
-            buffer.Unlock()
-        }
-    }
 }
 
-/// Converts limited-range NV12 to opaque pixels. `plane_height` is the coded
-/// height, which can be larger than the visible `height`.
+/// Converts limited-range NV12 to opaque pixels, `width / step` by `height / step`
+/// of them. `plane_height` is the coded height, which can be larger than the
+/// visible `height`. Each output pixel averages the brightness it covers, which
+/// keeps small text readable.
+#[allow(clippy::too_many_arguments)]
 pub fn nv12_to_pixels(
     data: &[u8],
     stride: usize,
     plane_height: usize,
     width: usize,
     height: usize,
+    step: usize,
     bt709: bool,
     out: &mut Vec<Color32>,
 ) {
     let (rv, gu, gv, bu) = if bt709 { (459, 55, 136, 541) } else { (409, 100, 208, 516) };
+    let step = step.max(1);
     let width = width.min(stride);
     let height = height.min(plane_height);
-    out.clear();
-    out.reserve(width * height);
+    let (out_width, out_height) = (width / step, height / step);
     let chroma_start = stride * plane_height;
-    if stride == 0 || data.len() < chroma_start + stride * height.div_ceil(2) {
+    if out_width == 0 || out_height == 0 || data.len() < chroma_start + stride * height.div_ceil(2) {
+        out.clear();
         return;
     }
+    out.resize(out_width * out_height, Color32::BLACK);
     let (luma, chroma) = data.split_at(chroma_start);
-    for row in 0..height {
-        let luma_row = &luma[row * stride..][..width];
-        let chroma_row = &chroma[(row / 2) * stride..][..width];
-        for column in 0..width {
-            let y = 298 * (i32::from(luma_row[column]) - 16);
-            let pair = column & !1;
-            let u = i32::from(chroma_row[pair]) - 128;
-            let v = i32::from(chroma_row[(pair + 1).min(width - 1)]) - 128;
-            let clamp = |value: i32| ((value + 128) >> 8).clamp(0, 255) as u8;
-            out.push(Color32::from_rgb(clamp(y + rv * v), clamp(y - gu * u - gv * v), clamp(y + bu * u)));
+    let covered = (step * step) as i32;
+
+    let convert = |first_row: usize, rows: &mut [Color32]| {
+        for (index, row) in rows.chunks_exact_mut(out_width).enumerate() {
+            let source_row = (first_row + index) * step;
+            let chroma_row = &chroma[(source_row / 2) * stride..][..width];
+            for (column, pixel) in row.iter_mut().enumerate() {
+                let x = column * step;
+                let brightness = (0..step)
+                    .map(|down| luma[(source_row + down) * stride..][x..x + step].iter().map(|&value| i32::from(value)).sum::<i32>())
+                    .sum::<i32>();
+                let y = 298 * (brightness / covered - 16);
+                let pair = x & !1;
+                let u = i32::from(chroma_row[pair]) - 128;
+                let v = i32::from(chroma_row[(pair + 1).min(width - 1)]) - 128;
+                let clamp = |value: i32| ((value + 128) >> 8).clamp(0, 255) as u8;
+                *pixel = Color32::from_rgb(clamp(y + rv * v), clamp(y - gu * u - gv * v), clamp(y + bu * u));
+            }
         }
+    };
+
+    if width * height < PARALLEL_FROM_PIXELS {
+        convert(0, out);
+        return;
     }
+    let workers = std::thread::available_parallelism().map_or(1, usize::from).min(MAX_CONVERT_THREADS);
+    let rows_each = out_height.div_ceil(workers);
+    std::thread::scope(|scope| {
+        for (index, rows) in out.chunks_mut(rows_each * out_width).enumerate() {
+            let convert = &convert;
+            scope.spawn(move || convert(index * rows_each, rows));
+        }
+    });
 }
 
 #[cfg(test)]
@@ -210,11 +247,11 @@ mod tests {
     #[test]
     fn converts_black_white_and_red() {
         let mut out = Vec::new();
-        nv12_to_pixels(&solid(16, 128, 128), 4, 4, 4, 4, false, &mut out);
+        nv12_to_pixels(&solid(16, 128, 128), 4, 4, 4, 4, 1, false, &mut out);
         assert_eq!(out, vec![Color32::BLACK; 16]);
-        nv12_to_pixels(&solid(235, 128, 128), 4, 4, 4, 4, false, &mut out);
+        nv12_to_pixels(&solid(235, 128, 128), 4, 4, 4, 4, 1, false, &mut out);
         assert_eq!(out, vec![Color32::WHITE; 16]);
-        nv12_to_pixels(&solid(81, 90, 240), 4, 4, 4, 4, false, &mut out);
+        nv12_to_pixels(&solid(81, 90, 240), 4, 4, 4, 4, 1, false, &mut out);
         let red = out[0];
         assert!(red.r() > 250 && red.g() < 5 && red.b() < 5, "{red:?}");
     }
@@ -222,14 +259,44 @@ mod tests {
     #[test]
     fn crops_to_the_visible_size() {
         let mut out = Vec::new();
-        nv12_to_pixels(&solid(235, 128, 128), 4, 4, 2, 2, false, &mut out);
+        nv12_to_pixels(&solid(235, 128, 128), 4, 4, 2, 2, 1, false, &mut out);
         assert_eq!(out.len(), 4);
     }
 
     #[test]
     fn a_short_buffer_gives_no_picture_instead_of_a_panic() {
-        let mut out = Vec::new();
-        nv12_to_pixels(&[0; 8], 4, 4, 4, 4, false, &mut out);
+        let mut out = vec![Color32::RED];
+        nv12_to_pixels(&[0; 8], 4, 4, 4, 4, 1, false, &mut out);
         assert!(out.is_empty());
+    }
+
+    #[test]
+    fn stepping_averages_the_brightness_it_covers() {
+        let mut data = vec![235, 16, 235, 16, 235, 16, 235, 16, 235, 16, 235, 16, 235, 16, 235, 16];
+        data.extend([128, 128].repeat(4));
+        let mut out = Vec::new();
+        nv12_to_pixels(&data, 4, 4, 4, 4, 2, false, &mut out);
+        assert_eq!(out.len(), 4);
+        // Halfway between black and white on the limited range.
+        assert!(out.iter().all(|pixel| (i32::from(pixel.r()) - 127).abs() < 3), "{out:?}");
+    }
+
+    #[test]
+    fn threaded_conversion_matches_a_single_thread() {
+        let (width, height) = (640usize, 480usize);
+        let mut data: Vec<u8> = (0..width * height).map(|index| (index % 200 + 16) as u8).collect();
+        data.extend((0..width * height / 2).map(|index| (index % 100 + 80) as u8));
+        let mut threaded = Vec::new();
+        nv12_to_pixels(&data, width, height, width, height, 1, false, &mut threaded);
+        let mut joined = Vec::new();
+        let chroma = &data[width * height..];
+        for row in 0..height {
+            let mut single = Vec::new();
+            let mut strip = data[row * width..][..width].to_vec();
+            strip.extend_from_slice(&chroma[(row / 2) * width..][..width]);
+            nv12_to_pixels(&strip, width, 1, width, 1, 1, false, &mut single);
+            joined.extend(single);
+        }
+        assert_eq!(threaded, joined);
     }
 }

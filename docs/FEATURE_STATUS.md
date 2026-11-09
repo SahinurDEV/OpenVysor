@@ -48,7 +48,8 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | Drag, wheel, typing, rotation, auto-resume | Written, **not yet verified** |
 | Clipboard sync, drag and drop, wireless, sound | Written, **not yet verified** |
 | Recording to MP4 | Written and unit tested, **not verified on a device**. Video only, no sound |
-| Latency | **Not measured** |
+| Opening speed | Measured on a real phone: window in 245–367 ms, first picture about 0.95 s once the server is on the phone |
+| End-to-end latency | **Not measured** |
 | Hardware video decoding | Not done; decoding runs on the CPU |
 | Installer | Not done; the app is one portable `.exe` |
 

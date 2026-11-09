@@ -531,6 +531,7 @@ impl Phone {
         let size = self.video.size();
         if let (Status::Streaming, Some(texture)) = (state.status, &state.texture) {
             let rect = fit_inside(area, size);
+            self.video.set_display_long_side((rect.width().max(rect.height()) * ui.ctx().pixels_per_point()).round() as u32);
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
             ui.painter().image(texture.id(), rect, uv, Color32::WHITE);
             self.handle_input(ui, rect, size, state, actions);

@@ -8,13 +8,14 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
+use std::thread;
 
 use crate::adb::Adb;
 use crate::error::{AppError, Result};
 use apps::AppInfo;
 use process::JobObject;
 use protocol::ControlMessage;
-use session::{ClipboardHandler, MirrorOptions, PacketSink, Session, SessionParts};
+use session::{ClipboardHandler, MirrorOptions, PacketSink, Session, SessionParts, push_server};
 
 /// Sessions are keyed by an id chosen by the caller, because one device can
 /// now have several at once (one per app window).
@@ -22,9 +23,9 @@ use session::{ClipboardHandler, MirrorOptions, PacketSink, Session, SessionParts
 pub struct MirrorManager {
     sessions: Mutex<HashMap<String, Arc<Session>>>,
     starting: Mutex<HashSet<String>>,
-    // Each server deletes its jar once running, so a concurrent start could
-    // find the file gone. Pushes and launches therefore run one at a time.
-    launch_lock: Mutex<()>,
+    /// Phones already holding the server. Held during a push, so windows opening
+    /// together share one upload and then start side by side.
+    pushed: Mutex<HashSet<String>>,
     job: Option<JobObject>,
     clipboard_handler: OnceLock<ClipboardHandler>,
     clipboard_sync: AtomicBool,
@@ -79,10 +80,13 @@ impl MirrorManager {
                 .unwrap_or_else(|| Arc::new(|_| {})),
         };
 
-        let result = {
-            let _launch = self.launch_lock.lock().unwrap();
-            Session::start(adb, serial, server_path, options, start_app, self.job.as_ref(), parts)
-        };
+        let result = self
+            .ensure_server(adb, serial, server_path)
+            .and_then(|()| Session::start(adb, serial, options, start_app, self.job.as_ref(), parts));
+        if result.is_err() {
+            // The stored copy may be gone, so the next attempt uploads it again.
+            self.pushed.lock().unwrap().remove(serial);
+        }
         // Publish before clearing `starting`, so a second start is always rejected.
         if let Ok(session) = &result {
             *session_slot.lock().unwrap() = Some(session.scid());
@@ -117,9 +121,22 @@ impl MirrorManager {
         }
     }
 
+    fn ensure_server(&self, adb: &Adb, serial: &str, server_path: &Path) -> Result<()> {
+        let mut pushed = self.pushed.lock().unwrap();
+        if !pushed.contains(serial) {
+            push_server(adb, serial, server_path)?;
+            pushed.insert(serial.to_string());
+        }
+        Ok(())
+    }
+
     pub fn list_apps(&self, adb: &Adb, serial: &str, server_path: &Path) -> Result<Vec<AppInfo>> {
-        let _launch = self.launch_lock.lock().unwrap();
-        apps::list_apps(adb, serial, server_path)
+        self.ensure_server(adb, serial, server_path)?;
+        let result = apps::list_apps(adb, serial);
+        if result.is_err() {
+            self.pushed.lock().unwrap().remove(serial);
+        }
+        result
     }
 
     fn remove_ended(&self, key: &str, scid: Option<u32>) {
@@ -145,9 +162,12 @@ impl MirrorManager {
 
     pub fn stop_all(&self) {
         let sessions: Vec<_> = self.sessions.lock().unwrap().drain().map(|(_, s)| s).collect();
-        for session in sessions {
-            session.stop();
-        }
+        // Each stop waits on adb, so together they take no longer than one.
+        thread::scope(|scope| {
+            for session in &sessions {
+                scope.spawn(|| session.stop());
+            }
+        });
     }
 
     pub fn send(&self, key: &str, message: &ControlMessage) -> Result<()> {

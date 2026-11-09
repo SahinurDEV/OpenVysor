@@ -8,8 +8,8 @@
 
 ```powershell
 pnpm exec tsc --noEmit
-pnpm exec vitest run            # 19 tests: input mapping, H.264 config, stores
-cd src-tauri; cargo test --lib  # 22 tests: parsing, wire format, options, Job Object
+pnpm exec vitest run            # 24 tests: input mapping, H.264 config, stores, transfer helpers
+cd src-tauri; cargo test --lib  # 43 tests: parsing, wire format, options, Job Object, clipboard
 ```
 
 These use mocks or pure functions, and say nothing about real-device behaviour.
@@ -63,3 +63,15 @@ app exit: no tunnel or server left, shared adb server still running
 The frame rate reflects an idle screen, because Android only encodes changes. Latency,
 smoothness under motion, drag, wheel, typing into a field, rotation, full-screen mode, quality
 changes during a session, and automatic resume after an unplug have not been tested.
+
+## Phone windows (packaged app)
+
+`scripts/e2e-windows.mjs` opens Calculator and Clock in their own windows and checks the
+whole-phone window by numbers only, so no private screen is saved.
+
+Last result, 2026-11-09, Nothing A059 on Android 16: **passed**, no console errors. Each app
+ran on its own virtual display, a click changed the Calculator, the windows lined up side by
+side, and closing them left no tunnel or server behind.
+
+Open issue: `Alt + Left/Right` sent with WScript.Shell SendKeys did not change the foreground
+window, although calling the same backend command directly did.

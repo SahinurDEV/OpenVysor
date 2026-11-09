@@ -49,7 +49,19 @@ decoder with no `description` expects Annex B parameter sets in the key frame.
 - `adb/`: binary discovery, process wrapper, device parsing, watcher.
 - `mirroring/`: wire protocol, session lifecycle, job object, packet merging.
 - `commands/`: the Tauri command surface and input validation.
-- Planned for Phase 4: `adb/wireless.rs`, `transfer/`, `apk/`.
+- `adb/wireless.rs`: pairing, connecting, and the QR pairing flow.
+- `transfer/`: installs dropped APKs and copies other files to `/sdcard/Download/`.
+- `clipboard.rs`: one thread owns the Windows clipboard and polls it every 800 ms. A tracker
+  stops text that came from the phone being sent straight back.
+
+## Audio and recording
+
+Whole-phone sessions can open a third scrcpy socket carrying Opus audio. Packets of kind 4
+(config) and 5 (frame) go to `services/audioPlayer.ts`, which decodes with WebCodecs and plays
+through an `AudioContext`. Per-app windows have no audio.
+
+`services/recorder.ts` records the canvas plus that audio with `MediaRecorder`, preferring MP4
+and falling back to WebM. One-second chunks are written in order to `Videos\OpenVysor`.
 
 ## Licensing
 

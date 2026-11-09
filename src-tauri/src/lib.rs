@@ -1,8 +1,11 @@
 pub mod adb;
+pub mod clipboard;
 pub mod commands;
 pub mod error;
 pub mod mirroring;
+pub mod transfer;
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use tauri::{Emitter, Manager, RunEvent, WindowEvent};
@@ -23,10 +26,16 @@ pub fn run() {
                 let payload = DevicesPayload { status: status.clone(), devices: devices.to_vec() };
                 let _ = handle.emit(EVENT_DEVICES, payload);
             });
+            let mirrors = Arc::new(MirrorManager::new());
+            let device_clipboard = Mutex::new(clipboard::spawn(mirrors.clone()));
+            mirrors.set_clipboard_handler(Arc::new(move |text| {
+                let _ = device_clipboard.lock().unwrap().send(text);
+            }));
             app.manage(AppState {
                 registry,
-                mirrors: Arc::new(MirrorManager::new()),
+                mirrors,
                 windows: Mutex::new(Vec::new()),
+                recordings: Mutex::new(HashMap::new()),
             });
             Ok(())
         })
@@ -52,6 +61,15 @@ pub fn run() {
             commands::stop_mirror,
             commands::mirror_input,
             commands::take_screenshot,
+            commands::set_clipboard_sync,
+            commands::send_files,
+            commands::wireless_pair,
+            commands::wireless_connect,
+            commands::wireless_disconnect,
+            commands::wireless_poll_qr,
+            commands::recording_start,
+            commands::recording_chunk,
+            commands::recording_stop,
             commands::windows::open_mirror_window,
             commands::windows::arrange_mirror_windows,
             commands::windows::focus_adjacent_window,

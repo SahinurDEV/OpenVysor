@@ -6,7 +6,7 @@ use std::time::Duration;
 use serde::Serialize;
 
 use super::commands::fetch_details;
-use super::device::{Device, DeviceDetails, DeviceState, parse_devices};
+use super::device::{ConnectionType, Device, DeviceDetails, DeviceState, parse_devices};
 use super::{Adb, DEFAULT_TIMEOUT};
 use crate::error::{AppError, Result};
 
@@ -42,6 +42,23 @@ impl DeviceRegistry {
 
     pub fn devices(&self) -> Vec<Device> {
         self.snapshot.lock().unwrap().devices.clone()
+    }
+
+    pub fn adb(&self) -> Result<Adb> {
+        self.snapshot.lock().unwrap().adb.clone().ok_or(AppError::AdbNotFound)
+    }
+
+    /// Returns the serial only if adb itself reports it as a wireless device.
+    pub fn adb_for_wireless(&self, serial: &str) -> Result<Adb> {
+        let snapshot = self.snapshot.lock().unwrap();
+        let known = snapshot
+            .devices
+            .iter()
+            .any(|device| device.serial == serial && device.connection == ConnectionType::Wireless);
+        if !known {
+            return Err(AppError::UnknownDevice(serial.to_string()));
+        }
+        snapshot.adb.clone().ok_or(AppError::AdbNotFound)
     }
 
     /// Returns adb only for a device that adb itself reports as online, so a

@@ -17,6 +17,21 @@ function Row({ title, hint, children }: { title: string; hint: string; children:
   );
 }
 
+function OnOff({ value, label, onChange }: { value: boolean; label: string; onChange: (value: boolean) => void }) {
+  return (
+    <Button
+      size="sm"
+      variant={value ? "primary" : "secondary"}
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
+      onClick={() => onChange(!value)}
+    >
+      {value ? "On" : "Off"}
+    </Button>
+  );
+}
+
 const THEMES: { id: Theme; label: string }[] = [
   { id: "dark", label: "Dark" },
   { id: "light", label: "Light" },
@@ -28,6 +43,8 @@ export function SettingsPage() {
   const options = useSettingsStore((state) => state.options);
   const setOptions = useSettingsStore((state) => state.setOptions);
   const status = useDeviceStore((state) => state.status);
+  const clipboardSync = useSettingsStore((state) => state.clipboardSync);
+  const setClipboardSync = useSettingsStore((state) => state.setClipboardSync);
 
   return (
     <div className="page-enter h-full overflow-y-auto p-8">
@@ -48,6 +65,16 @@ export function SettingsPage() {
         </Row>
         <Row title="Mirroring quality" hint="Resolution, bitrate and frame rate for new sessions">
           <OptionFields options={options} onChange={setOptions} />
+        </Row>
+        <Row title="Phone audio" hint="Plays on this computer. The phone goes silent while mirroring">
+          <OnOff
+            label="Phone audio"
+            value={options.audio}
+            onChange={(audio) => setOptions({ ...options, audio })}
+          />
+        </Row>
+        <Row title="Clipboard sync" hint="Text copied on either side, including passwords, reaches the other">
+          <OnOff label="Clipboard sync" value={clipboardSync} onChange={setClipboardSync} />
         </Row>
         <Row title="ADB" hint={status.path ?? "Not found"}>
           <span className="text-[13px] text-muted-foreground">

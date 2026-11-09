@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod connection;
 pub mod device;
+pub mod wireless;
 
 use std::ffi::OsStr;
 use std::io::Read;

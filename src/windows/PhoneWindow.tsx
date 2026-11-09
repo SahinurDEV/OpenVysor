@@ -3,6 +3,7 @@ import type { KeyboardEvent } from "react";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ChevronLeft, Circle, LoaderCircle, Minus, RefreshCw, Unplug, X } from "lucide-react";
+import { DropOverlay } from "@/components/DropOverlay";
 import { MirrorSurface } from "@/components/MirrorSurface";
 import { Button } from "@/components/ui/button";
 import { api } from "@/services/api";
@@ -126,6 +127,7 @@ export function PhoneWindow({ info }: { info: PhoneWindowInfo }) {
         <div className={streaming ? "size-full" : "invisible size-full"}>
           <MirrorSurface />
         </div>
+        <DropOverlay serial={info.serial} enabled={streaming} />
         {!streaming && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
             {status === "starting" || status === "idle" ? (

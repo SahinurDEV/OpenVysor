@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { api, errorMessage } from "@/services/api";
+import { ScreenRecorder } from "@/services/recorder";
 import { MirrorDecoder } from "@/services/videoDecoder";
 import { useSettingsStore } from "@/stores/settingsStore";
 import type { ControlMessage, Device } from "@/types";
@@ -20,6 +21,10 @@ interface MirrorStore {
   message: string | null;
   size: { width: number; height: number };
   fps: number;
+  audioPlaying: boolean;
+  recording: boolean;
+  startRecording: () => Promise<void>;
+  stopRecording: () => Promise<string | null>;
   setCanvas: (canvas: HTMLCanvasElement | null) => void;
   setTarget: (target: SessionTarget) => void;
   start: (serial: string) => Promise<void>;
@@ -32,6 +37,7 @@ interface MirrorStore {
 let canvasElement: HTMLCanvasElement | null = null;
 let target: SessionTarget | null = null;
 let decoder: MirrorDecoder | null = null;
+let recorder: ScreenRecorder | null = null;
 // Bumped by every start and stop, so a slow start can tell it has been superseded.
 let generation = 0;
 // Set once the device vanishes after a drop. Auto-reconnect needs this, or a
@@ -43,6 +49,12 @@ function closeDecoder() {
   decoder = null;
 }
 
+async function finishRecording(): Promise<string | null> {
+  const active = recorder;
+  recorder = null;
+  return active ? active.stop().catch(() => null) : null;
+}
+
 export const useMirrorStore = create<MirrorStore>((set, get) => ({
   status: "idle",
   serial: null,
@@ -51,6 +63,27 @@ export const useMirrorStore = create<MirrorStore>((set, get) => ({
   message: null,
   size: { width: 0, height: 0 },
   fps: 0,
+  audioPlaying: false,
+  recording: false,
+
+  startRecording: async () => {
+    const { session, status } = get();
+    if (recorder || !session || status !== "streaming" || !canvasElement) {
+      return;
+    }
+    try {
+      recorder = await ScreenRecorder.start(session, canvasElement, decoder?.audioStream ?? null);
+      set({ recording: true });
+    } catch (error) {
+      set({ message: errorMessage(error) });
+    }
+  },
+
+  stopRecording: async () => {
+    set({ recording: false });
+    return finishRecording();
+  },
+
   setCanvas: (canvas) => {
     canvasElement = canvas;
   },
@@ -76,12 +109,13 @@ export const useMirrorStore = create<MirrorStore>((set, get) => ({
     const session = target?.session ?? serial;
     deviceWentAway = false;
     closeDecoder();
-    set({ status: "starting", serial, session, message: null, fps: 0 });
+    set({ status: "starting", serial, session, message: null, fps: 0, audioPlaying: false });
 
     const active = new MirrorDecoder(canvasElement, {
       onSize: (width, height) => set({ size: { width, height } }),
       onFps: (fps) => set({ fps }),
       onError: (message) => set({ status: "error", message }),
+      onAudioPlaying: () => set({ audioPlaying: true }),
       requestKeyFrame: () => get().send({ type: "resetVideo" }),
     });
     decoder = active;
@@ -107,8 +141,11 @@ export const useMirrorStore = create<MirrorStore>((set, get) => ({
   stop: async () => {
     const { session } = get();
     generation += 1;
+    // The recorder reads the canvas, so it has to finish before the decoder closes.
+    set({ recording: false });
+    await finishRecording();
     closeDecoder();
-    set({ status: "idle", serial: null, session: null, deviceName: null, message: null, fps: 0 });
+    set({ status: "idle", serial: null, session: null, deviceName: null, message: null, fps: 0, audioPlaying: false });
     if (session) {
       await api.stopMirror(session).catch(() => undefined);
     }
@@ -126,9 +163,10 @@ export const useMirrorStore = create<MirrorStore>((set, get) => ({
       return;
     }
     generation += 1;
+    void finishRecording();
     closeDecoder();
     deviceWentAway = false;
-    set({ status: "disconnected", message: reason, fps: 0 });
+    set({ status: "disconnected", message: reason, fps: 0, recording: false, audioPlaying: false });
   },
 
   handleDevices: (devices) => {

@@ -7,6 +7,7 @@ use crate::error::{AppError, Result};
 
 pub const SCRCPY_VERSION: &str = "4.1";
 pub const CODEC_H264: u32 = 0x6832_3634;
+pub const CODEC_OPUS: u32 = 0x6f70_7573;
 pub const HEADER_SIZE: usize = 12;
 pub const DEVICE_NAME_SIZE: usize = 64;
 
@@ -18,6 +19,7 @@ const MAX_PACKET_SIZE: u32 = 32 * 1024 * 1024;
 const MAX_TEXT_BYTES: usize = 300;
 const MAX_CLIPBOARD_BYTES: usize = (1 << 18) - 14;
 const MAX_APP_NAME_BYTES: usize = 255;
+const MAX_DEVICE_MESSAGE: usize = 1 << 18;
 
 /// `Session` is sent on start and again after each rotation or size change.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -80,6 +82,8 @@ pub enum UiPacket {
     Config = 1,
     KeyFrame = 2,
     DeltaFrame = 3,
+    AudioConfig = 4,
+    AudioFrame = 5,
 }
 
 /// UI packet layout: kind (`u8`), PTS (`u64` big-endian), payload.
@@ -96,6 +100,38 @@ pub fn encode_ui_session(width: u32, height: u32) -> Vec<u8> {
     payload[..4].copy_from_slice(&width.to_be_bytes());
     payload[4..].copy_from_slice(&height.to_be_bytes());
     encode_ui_packet(UiPacket::Session, 0, &payload)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum DeviceMessage {
+    Clipboard(String),
+    AckClipboard,
+    UhidOutput,
+}
+
+/// Parses one message from the start of `buffer`. Returns the message and its
+/// length, or `None` if more bytes are needed.
+pub fn parse_device_message(buffer: &[u8]) -> Result<Option<(DeviceMessage, usize)>> {
+    let Some(kind) = buffer.first() else { return Ok(None) };
+    match kind {
+        0 => {
+            let Some(header) = buffer.get(1..5) else { return Ok(None) };
+            let length = u32::from_be_bytes(header.try_into().unwrap()) as usize;
+            if length > MAX_DEVICE_MESSAGE {
+                return Err(AppError::Protocol(format!("clipboard of {length} bytes")));
+            }
+            let Some(text) = buffer.get(5..5 + length) else { return Ok(None) };
+            let text = String::from_utf8_lossy(text).into_owned();
+            Ok(Some((DeviceMessage::Clipboard(text), 5 + length)))
+        }
+        1 => Ok((buffer.len() >= 9).then_some((DeviceMessage::AckClipboard, 9))),
+        2 => {
+            let Some(header) = buffer.get(3..5) else { return Ok(None) };
+            let total = 5 + u16::from_be_bytes(header.try_into().unwrap()) as usize;
+            Ok((buffer.len() >= total).then_some((DeviceMessage::UhidOutput, total)))
+        }
+        other => Err(AppError::Protocol(format!("unknown device message {other}"))),
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -361,6 +397,25 @@ mod tests {
     fn the_ui_cannot_send_start_app() {
         let parsed = serde_json::from_str::<ControlMessage>(r#"{"type":"startApp","name":"x"}"#);
         assert!(parsed.is_err());
+    }
+
+    #[test]
+    fn parses_device_clipboard_across_partial_reads() {
+        let message = [&[0u8, 0, 0, 0, 2][..], b"hi"].concat();
+        assert_eq!(parse_device_message(&message[..4]).unwrap(), None);
+        assert_eq!(parse_device_message(&message[..6]).unwrap(), None);
+        assert_eq!(
+            parse_device_message(&message).unwrap(),
+            Some((DeviceMessage::Clipboard("hi".into()), 7))
+        );
+    }
+
+    #[test]
+    fn parses_acks_and_rejects_unknown_messages() {
+        assert_eq!(parse_device_message(&[1; 9]).unwrap(), Some((DeviceMessage::AckClipboard, 9)));
+        assert_eq!(parse_device_message(&[1; 8]).unwrap(), None);
+        assert!(parse_device_message(&[9]).is_err());
+        assert!(parse_device_message(&[0, 0xff, 0xff, 0xff, 0xff]).is_err());
     }
 
     #[test]

@@ -7,6 +7,7 @@ import type {
   DevicesPayload,
   MirrorEnded,
   MirrorOptions,
+  TransferResult,
 } from "@/types";
 
 export function errorMessage(error: unknown): string {
@@ -52,6 +53,28 @@ export const api = {
   focusAdjacentWindow: (direction: number) => invoke<void>("focus_adjacent_window", { direction }),
 
   takeScreenshot: (serial: string) => invoke<string>("take_screenshot", { serial }),
+
+  setClipboardSync: (enabled: boolean) => invoke<void>("set_clipboard_sync", { enabled }),
+
+  sendFiles: (serial: string, paths: string[]) =>
+    invoke<TransferResult[]>("send_files", { serial, paths }),
+
+  wirelessPair: (address: string, code: string) => invoke<void>("wireless_pair", { address, code }),
+
+  wirelessConnect: (address: string) => invoke<string>("wireless_connect", { address }),
+
+  wirelessDisconnect: (serial: string) => invoke<void>("wireless_disconnect", { serial }),
+
+  wirelessPollQr: (name: string, password: string) =>
+    invoke<boolean>("wireless_poll_qr", { name, password }),
+
+  recordingStart: (session: string, extension: string) =>
+    invoke<string>("recording_start", { session, extension }),
+
+  recordingChunk: (session: string, chunk: Uint8Array) =>
+    invoke<void>("recording_chunk", chunk, { headers: { "x-session": session } }),
+
+  recordingStop: (session: string) => invoke<void>("recording_stop", { session }),
 
   onDevicesChanged: (handler: (payload: DevicesPayload) => void): Promise<UnlistenFn> =>
     listen<DevicesPayload>("devices-changed", (event) => handler(event.payload)),

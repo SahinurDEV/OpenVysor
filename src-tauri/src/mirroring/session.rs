@@ -13,8 +13,9 @@ use serde::{Deserialize, Serialize};
 
 use super::process::JobObject;
 use super::protocol::{
-    CODEC_H264, ControlMessage, DEVICE_NAME_SIZE, HEADER_SIZE, PacketMerger, SCRCPY_VERSION,
-    StreamHeader, UiPacket, encode_ui_packet, encode_ui_session, parse_device_name, parse_header,
+    CODEC_H264, CODEC_OPUS, ControlMessage, DEVICE_NAME_SIZE, DeviceMessage, HEADER_SIZE, PacketMerger,
+    SCRCPY_VERSION, StreamHeader, UiPacket, encode_ui_packet, encode_ui_session, parse_device_message,
+    parse_device_name, parse_header,
 };
 use crate::adb::commands::{create_forward, remove_forward};
 use crate::adb::Adb;
@@ -36,11 +37,14 @@ pub struct MirrorOptions {
     pub max_size: u32,
     pub bit_rate: u32,
     pub max_fps: u32,
+    /// Sends phone audio to the computer. Android stops playing it on the phone meanwhile.
+    #[serde(default)]
+    pub audio: bool,
 }
 
 impl Default for MirrorOptions {
     fn default() -> Self {
-        Self { max_size: 1600, bit_rate: 8_000_000, max_fps: 60 }
+        Self { max_size: 1600, bit_rate: 8_000_000, max_fps: 60, audio: false }
     }
 }
 
@@ -63,15 +67,19 @@ impl MirrorOptions {
             format!("scid={scid:08x}"),
             "log_level=info".to_string(),
             "tunnel_forward=true".to_string(),
-            "audio=false".to_string(),
             "video_codec=h264".to_string(),
             format!("video_bit_rate={}", self.bit_rate),
             format!("max_fps={}", self.max_fps),
             "stay_awake=true".to_string(),
-            "clipboard_autosync=false".to_string(),
         ];
         if self.max_size != 0 {
             args.push(format!("max_size={}", self.max_size));
+        }
+        // Audio capture covers the whole phone, so it never belongs to one app window.
+        if self.audio && !app_window {
+            args.push("audio_codec=opus".to_string());
+        } else {
+            args.push("audio=false".to_string());
         }
         if app_window {
             args.push(format!("new_display={APP_DISPLAY}"));
@@ -115,9 +123,13 @@ fn describe_server_log(lines: &ServerLog) -> String {
         .unwrap_or_else(|| "the server exited without output".to_string())
 }
 
+pub type PacketSink = Arc<dyn Fn(Vec<u8>) -> bool + Send + Sync>;
+pub type ClipboardHandler = Arc<dyn Fn(String) + Send + Sync>;
+
 pub struct SessionParts {
-    pub sink: Box<dyn FnMut(Vec<u8>) -> bool + Send>,
+    pub sink: PacketSink,
     pub on_end: Box<dyn FnOnce(String) + Send>,
+    pub on_clipboard: ClipboardHandler,
 }
 
 pub struct Session {
@@ -128,6 +140,7 @@ pub struct Session {
     device_name: String,
     child: Mutex<Option<Child>>,
     video: TcpStream,
+    audio: Option<TcpStream>,
     control: TcpStream,
     control_tx: Mutex<Option<Sender<Vec<u8>>>>,
     stopped: AtomicBool,
@@ -160,8 +173,9 @@ impl Session {
             }
         };
 
-        let handshake = connect(port, &mut child, &log);
-        let (video, control, device_name) = match handshake {
+        let wants_audio = options.audio && start_app.is_none();
+        let handshake = connect(port, wants_audio, &mut child, &log);
+        let (video, audio, control, device_name) = match handshake {
             Ok(connected) => connected,
             Err(error) => {
                 let _ = child.kill();
@@ -180,6 +194,7 @@ impl Session {
             device_name,
             child: Mutex::new(Some(child)),
             video: video.try_clone()?,
+            audio: audio.as_ref().map(TcpStream::try_clone).transpose()?,
             control: control.try_clone()?,
             control_tx: Mutex::new(Some(control_tx)),
             stopped: AtomicBool::new(false),
@@ -194,20 +209,26 @@ impl Session {
             }
         });
 
+        let SessionParts { sink, on_end, on_clipboard } = parts;
+
         // Device messages must be consumed so the server never blocks on them.
-        let mut reader = control;
-        thread::spawn(move || {
-            let _ = io::copy(&mut reader, &mut io::sink());
-        });
+        thread::spawn(move || pump_device_messages(control, &*on_clipboard));
+
+        if let Some(audio) = audio {
+            let audio_sink = sink.clone();
+            thread::spawn(move || {
+                let reason = pump_audio(audio, &*audio_sink);
+                log::info!("audio stream ended: {reason}");
+            });
+        }
 
         if let Some(package) = start_app {
             session.send(&ControlMessage::StartApp { name: package.to_string() })?;
         }
 
-        let SessionParts { mut sink, on_end } = parts;
         let thread_session = session.clone();
         thread::spawn(move || {
-            let reason = pump_video(video, &mut sink);
+            let reason = pump_video(video, &*sink);
             log::info!("video stream ended for {}: {reason}", thread_session.serial);
             if !thread_session.stopped.load(Ordering::SeqCst) {
                 on_end(reason);
@@ -245,6 +266,9 @@ impl Session {
         }
         self.control_tx.lock().unwrap().take();
         let _ = self.video.shutdown(Shutdown::Both);
+        if let Some(audio) = &self.audio {
+            let _ = audio.shutdown(Shutdown::Both);
+        }
         let _ = self.control.shutdown(Shutdown::Both);
         if let Some(mut child) = self.child.lock().unwrap().take() {
             let _ = child.kill();
@@ -331,10 +355,17 @@ fn connect_first_socket(port: u16, child: &mut Child, log: &ServerLog) -> Result
     )))
 }
 
-fn connect(port: u16, child: &mut Child, log: &ServerLog) -> Result<(TcpStream, TcpStream, String)> {
+type Connected = (TcpStream, Option<TcpStream>, TcpStream, String);
+
+fn connect(port: u16, wants_audio: bool, child: &mut Child, log: &ServerLog) -> Result<Connected> {
     let mut video = connect_first_socket(port, child, log)?;
+    // The server accepts the sockets in exactly this order: video, audio, control.
+    let audio = if wants_audio { Some(TcpStream::connect(("127.0.0.1", port))?) } else { None };
     let control = TcpStream::connect(("127.0.0.1", port))?;
     video.set_nodelay(true)?;
+    if let Some(audio) = &audio {
+        audio.set_nodelay(true)?;
+    }
     control.set_nodelay(true)?;
     video.set_read_timeout(Some(HANDSHAKE_TIMEOUT))?;
 
@@ -357,11 +388,68 @@ fn connect(port: u16, child: &mut Child, log: &ServerLog) -> Result<(TcpStream, 
     }
 
     video.set_read_timeout(None)?;
-    Ok((video, control, device_name))
+    Ok((video, audio, control, device_name))
+}
+
+fn pump_device_messages(mut control: TcpStream, on_clipboard: &(dyn Fn(String) + Send + Sync)) {
+    let mut buffer = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        match control.read(&mut chunk) {
+            Ok(0) | Err(_) => return,
+            Ok(count) => buffer.extend_from_slice(&chunk[..count]),
+        }
+        loop {
+            match parse_device_message(&buffer) {
+                Ok(Some((message, length))) => {
+                    if let DeviceMessage::Clipboard(text) = message {
+                        on_clipboard(text);
+                    }
+                    buffer.drain(..length);
+                }
+                Ok(None) => break,
+                Err(error) => {
+                    log::warn!("device message: {error}");
+                    return;
+                }
+            }
+        }
+    }
+}
+
+fn pump_audio(mut audio: TcpStream, sink: &(dyn Fn(Vec<u8>) -> bool + Send + Sync)) -> String {
+    let mut codec = [0u8; 4];
+    if let Err(error) = audio.read_exact(&mut codec) {
+        return format!("connection closed: {error}");
+    }
+    match u32::from_be_bytes(codec) {
+        CODEC_OPUS => {}
+        0 => return "this device cannot capture audio".to_string(),
+        other => return format!("unsupported audio codec 0x{other:08x}"),
+    }
+    let mut header = [0u8; HEADER_SIZE];
+    loop {
+        if let Err(error) = audio.read_exact(&mut header) {
+            return format!("connection closed: {error}");
+        }
+        let (pts, config, size) = match parse_header(&header) {
+            Ok(StreamHeader::Media { pts, config, size, .. }) => (pts, config, size),
+            Ok(StreamHeader::Session { .. }) => continue,
+            Err(error) => return error.to_string(),
+        };
+        let mut payload = vec![0u8; size as usize];
+        if let Err(error) = audio.read_exact(&mut payload) {
+            return format!("connection closed: {error}");
+        }
+        let kind = if config { UiPacket::AudioConfig } else { UiPacket::AudioFrame };
+        if !sink(encode_ui_packet(kind, pts, &payload)) {
+            return "the audio consumer went away".to_string();
+        }
+    }
 }
 
 /// Reads packets until the stream ends and returns the reason it ended.
-fn pump_video(mut video: TcpStream, sink: &mut (dyn FnMut(Vec<u8>) -> bool + Send)) -> String {
+fn pump_video(mut video: TcpStream, sink: &(dyn Fn(Vec<u8>) -> bool + Send + Sync)) -> String {
     let mut merger = PacketMerger::default();
     let mut header = [0u8; HEADER_SIZE];
     loop {
@@ -425,6 +513,14 @@ mod tests {
         assert!(args.iter().any(|arg| arg.starts_with("new_display=")));
         let args = MirrorOptions::default().server_args(1, false);
         assert!(!args.iter().any(|arg| arg.starts_with("new_display=")));
+    }
+
+    #[test]
+    fn audio_is_only_captured_for_the_whole_phone() {
+        let options = MirrorOptions { audio: true, ..MirrorOptions::default() };
+        assert!(options.server_args(1, false).contains(&"audio_codec=opus".to_string()));
+        assert!(options.server_args(1, true).contains(&"audio=false".to_string()));
+        assert!(MirrorOptions::default().server_args(1, false).contains(&"audio=false".to_string()));
     }
 
     #[test]

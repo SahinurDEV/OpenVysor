@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
+  AudioLines,
   Camera,
   ChevronLeft,
   Circle,
@@ -14,9 +15,11 @@ import {
   Smartphone,
   Square,
   Unplug,
+  Video,
   Volume1,
   Volume2,
 } from "lucide-react";
+import { DropOverlay } from "@/components/DropOverlay";
 import { MirrorSurface } from "@/components/MirrorSurface";
 import { OptionFields } from "@/components/OptionFields";
 import { Button } from "@/components/ui/button";
@@ -56,6 +59,11 @@ export function MirrorPage() {
   const options = useSettingsStore((state) => state.options);
   const setOptions = useSettingsStore((state) => state.setOptions);
   const navigate = useNavigation((state) => state.navigate);
+  const page = useNavigation((state) => state.page);
+  const audioPlaying = useMirrorStore((state) => state.audioPlaying);
+  const recording = useMirrorStore((state) => state.recording);
+  const startRecording = useMirrorStore((state) => state.startRecording);
+  const stopRecording = useMirrorStore((state) => state.stopRecording);
 
   const [fullscreen, setFullscreen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -106,6 +114,15 @@ export function MirrorPage() {
     }
   };
 
+  const toggleRecording = async () => {
+    if (!recording) {
+      await startRecording();
+      return;
+    }
+    const path = await stopRecording();
+    setNotice(path ? `Saved to ${path}` : "The recording could not be saved.");
+  };
+
   const detach = async () => {
     if (!serial) {
       return;
@@ -150,6 +167,31 @@ export function MirrorPage() {
           </p>
         </div>
         <OptionFields options={options} disabled={status === "starting"} onChange={changeOptions} />
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Phone audio"
+          aria-label="Phone audio"
+          aria-pressed={options.audio}
+          data-audio-playing={audioPlaying}
+          className={options.audio ? "text-primary" : undefined}
+          disabled={status === "starting"}
+          onClick={() => void changeOptions({ ...options, audio: !options.audio })}
+        >
+          <AudioLines />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          title={recording ? "Stop recording" : "Record screen"}
+          aria-label={recording ? "Stop recording" : "Record screen"}
+          aria-pressed={recording}
+          className={recording ? "text-danger" : undefined}
+          disabled={!streaming}
+          onClick={() => void toggleRecording()}
+        >
+          <Video />
+        </Button>
         <Button variant="ghost" size="icon" title="Screenshot" aria-label="Screenshot" disabled={!streaming} onClick={screenshot}>
           <Camera />
         </Button>
@@ -212,6 +254,7 @@ export function MirrorPage() {
               )}
             </Overlay>
           )}
+          <DropOverlay serial={serial} enabled={streaming && page === "mirror"} />
           {notice && (
             <div className="absolute bottom-4 left-1/2 max-w-[80%] -translate-x-1/2 truncate rounded-lg border bg-card px-3 py-2 text-[13px] shadow-lg select-text">
               {notice}

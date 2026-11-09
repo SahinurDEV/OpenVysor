@@ -19,6 +19,10 @@ vi.mock("@/services/videoDecoder", () => ({
   },
 }));
 
+vi.mock("@/services/recorder", () => ({
+  ScreenRecorder: class {},
+}));
+
 import { deviceName, mergeRecents } from "@/stores/deviceStore";
 import { useMirrorStore } from "@/stores/mirrorStore";
 

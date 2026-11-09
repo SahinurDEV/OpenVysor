@@ -1,8 +1,11 @@
+import { AudioPlayer } from "@/services/audioPlayer";
 import { h264CodecString } from "@/utils/h264";
 
 const PACKET_SESSION = 0;
 const PACKET_CONFIG = 1;
 const PACKET_KEY_FRAME = 2;
+const PACKET_AUDIO_CONFIG = 4;
+const PACKET_AUDIO_FRAME = 5;
 const HEADER_SIZE = 9;
 /** Beyond this many queued frames the UI is behind, so skip to the next key frame. */
 const MAX_DECODE_QUEUE = 6;
@@ -26,6 +29,7 @@ export interface DecoderCallbacks {
   onSize: (width: number, height: number) => void;
   onFps: (fps: number) => void;
   onError: (message: string) => void;
+  onAudioPlaying: () => void;
   requestKeyFrame: () => void;
 }
 
@@ -38,6 +42,7 @@ export class MirrorDecoder {
   private framesThisSecond = 0;
   private fpsTimer: ReturnType<typeof setInterval>;
   private closed = false;
+  private audio: AudioPlayer | null = null;
   private readonly context: CanvasRenderingContext2D;
 
   constructor(
@@ -65,9 +70,18 @@ export class MirrorDecoder {
       this.callbacks.onSize(view.getUint32(0), view.getUint32(4));
     } else if (kind === PACKET_CONFIG) {
       this.configure(payload);
+    } else if (kind === PACKET_AUDIO_CONFIG) {
+      this.audio?.close();
+      this.audio = new AudioPlayer(payload, this.callbacks.onAudioPlaying);
+    } else if (kind === PACKET_AUDIO_FRAME) {
+      this.audio?.decode(pts, payload);
     } else {
       this.decode(kind === PACKET_KEY_FRAME, pts, payload);
     }
+  }
+
+  get audioStream(): MediaStream | null {
+    return this.audio?.stream ?? null;
   }
 
   private configure(payload: Uint8Array): void {
@@ -162,6 +176,7 @@ export class MirrorDecoder {
     }
     this.pendingFrame?.close();
     this.pendingFrame = null;
+    this.audio?.close();
     if (this.decoder && this.decoder.state !== "closed") {
       this.decoder.close();
     }

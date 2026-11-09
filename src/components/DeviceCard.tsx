@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BatteryMedium, Cable, Info, MonitorSmartphone, Unplug, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
 import { Card } from "@/components/ui/card";
 import { deviceName } from "@/stores/deviceStore";
 import { useMirrorStore } from "@/stores/mirrorStore";
@@ -116,6 +117,12 @@ export function DeviceCard({ device }: { device: Device }) {
         </Button>
         {mirroring && (
           <Button variant="danger" size="sm" onClick={() => void stop()}>
+            <Unplug />
+            Disconnect
+          </Button>
+        )}
+        {device.connection === "wireless" && !mirroring && (
+          <Button variant="ghost" size="sm" onClick={() => void api.wirelessDisconnect(device.serial)}>
             <Unplug />
             Disconnect
           </Button>

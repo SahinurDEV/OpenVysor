@@ -10,6 +10,7 @@ import { api } from "@/services/api";
 import { useDeviceStore } from "@/stores/deviceStore";
 import { useMirrorStore } from "@/stores/mirrorStore";
 import { useNavigation } from "@/stores/navigationStore";
+import { useSettingsStore } from "@/stores/settingsStore";
 import type { DevicesPayload } from "@/types";
 
 function useBackendEvents() {
@@ -23,6 +24,7 @@ function useBackendEvents() {
       api.onMirrorEnded(({ session, reason }) => useMirrorStore.getState().handleEnded(session, reason)),
     ];
     void api.getDevices().then(applyDevices);
+    void api.setClipboardSync(useSettingsStore.getState().clipboardSync);
     return () => {
       subscriptions.forEach((subscription) => void subscription.then((unlisten) => unlisten()));
     };

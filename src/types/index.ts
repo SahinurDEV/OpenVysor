@@ -42,6 +42,7 @@ export interface MirrorOptions {
   maxSize: number;
   bitRate: number;
   maxFps: number;
+  audio: boolean;
 }
 
 export interface MirrorEnded {
@@ -82,6 +83,11 @@ export type ControlMessage =
   | { type: "backOrScreenOn"; action: number }
   | { type: "rotateDevice" }
   | { type: "resetVideo" };
+
+export interface TransferResult {
+  name: string;
+  action: "installed" | "sent";
+}
 
 export interface AppInfo {
   name: string;

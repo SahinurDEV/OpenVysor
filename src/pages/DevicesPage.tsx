@@ -1,16 +1,31 @@
-import { Usb } from "lucide-react";
+import { useState } from "react";
+import { Usb, Wifi } from "lucide-react";
 import { AdbGuide } from "@/components/AdbGuide";
 import { DeviceCard } from "@/components/DeviceCard";
+import { WirelessPanel } from "@/components/WirelessPanel";
+import { Button } from "@/components/ui/button";
 import { useDeviceStore } from "@/stores/deviceStore";
 
 export function DevicesPage() {
   const loaded = useDeviceStore((state) => state.loaded);
   const status = useDeviceStore((state) => state.status);
   const devices = useDeviceStore((state) => state.devices);
+  const [showWireless, setShowWireless] = useState(false);
 
   return (
     <div className="page-enter h-full overflow-y-auto p-8">
-      <h1 className="font-display mb-6 text-2xl font-semibold">Devices</h1>
+      <header className="mb-6 flex items-center justify-between">
+        <h1 className="font-display text-2xl font-semibold">Devices</h1>
+        <Button
+          aria-expanded={showWireless}
+          disabled={!status.available}
+          onClick={() => setShowWireless((value) => !value)}
+        >
+          <Wifi />
+          Connect over Wi-Fi
+        </Button>
+      </header>
+      {showWireless && <WirelessPanel />}
       {loaded && !status.available && <AdbGuide />}
       {status.available && devices.length === 0 && (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-16 text-center">

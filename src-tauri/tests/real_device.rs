@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use openvysor_lib::adb::device::{DeviceState, parse_devices};
 use openvysor_lib::adb::{Adb, DEFAULT_TIMEOUT};
-use openvysor_lib::mirroring::MirrorManager;
+use openvysor_lib::mirroring::{MirrorManager, StartRequest};
 use openvysor_lib::mirroring::protocol::ControlMessage;
 use openvysor_lib::mirroring::session::MirrorOptions;
 
@@ -87,12 +87,14 @@ fn streams_video_injects_input_and_cleans_up() {
     let session = manager
         .start(
             &adb,
-            &serial,
-            &serial,
-            &server_path(),
-            MirrorOptions::default(),
-            None,
-            Box::new(move |packet| tx.send(packet).is_ok()),
+            StartRequest {
+                key: &serial,
+                serial: &serial,
+                server_path: &server_path(),
+                options: MirrorOptions::default(),
+                start_app: None,
+            },
+            Arc::new(move |packet| tx.send(packet).is_ok()),
             Box::new(|reason| println!("ended: {reason}")),
         )
         .unwrap();

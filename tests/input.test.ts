@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { h264CodecString } from "@/utils/h264";
+import { pairingQrText, randomToken, summarizeTransfer } from "@/utils/transfer";
 import {
   androidKeycode,
   androidMetaState,
@@ -83,6 +84,28 @@ describe("geometry", () => {
   it("inverts wheel direction", () => {
     expect(wheelToScroll(0, 100)).toEqual({ hscroll: -0, vscroll: -1 });
     expect(wheelToScroll(0, -99999).vscroll).toBe(16);
+  });
+});
+
+describe("transfer helpers", () => {
+  it("summarizes one file by name and several by count", () => {
+    expect(summarizeTransfer([{ name: "a.apk", action: "installed" }])).toBe("Installed a.apk");
+    expect(summarizeTransfer([{ name: "b.jpg", action: "sent" }])).toBe("Sent b.jpg to Download");
+    expect(
+      summarizeTransfer([
+        { name: "a.apk", action: "installed" },
+        { name: "b.jpg", action: "sent" },
+        { name: "c.jpg", action: "sent" },
+      ]),
+    ).toBe("Installed 1 apps, Sent 2 files to Download");
+  });
+
+  it("builds the Android pairing QR text", () => {
+    expect(pairingQrText("studio-1", "abc")).toBe("WIFI:T:ADB;S:studio-1;P:abc;;");
+  });
+
+  it("creates hex tokens of the requested size", () => {
+    expect(randomToken(4)).toMatch(/^[0-9a-f]{8}$/);
   });
 });
 

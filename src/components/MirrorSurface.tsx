@@ -185,7 +185,9 @@ export function MirrorSurface() {
       ref={containerRef}
       tabIndex={0}
       aria-label="Android screen. Mouse and keyboard input go to the device."
-      className="flex size-full items-center justify-center rounded-lg outline-none"
+      // Inline, because the global :focus-visible rule outranks Tailwind's layered utilities.
+      style={{ outline: "none" }}
+      className="flex size-full items-center justify-center rounded-lg"
       onKeyDown={onKeyDown}
       onKeyUp={onKeyUp}
       onBlur={releaseAllKeys}

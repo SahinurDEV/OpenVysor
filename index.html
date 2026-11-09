@@ -79,7 +79,7 @@ footer p { margin: 4px 0; }
       <a href="#use">Use</a>
       <a href="#status">Status</a>
       <a href="#docs">Docs</a>
-      <a href="https://github.com/SahinurDEV/OpenVysor/tree/native-rust-app">GitHub</a>
+      <a href="https://github.com/SahinurDEV/OpenVysor">GitHub</a>
     </nav>
   </div>
 </header>
@@ -89,7 +89,8 @@ footer p { margin: 4px 0; }
     <h1>Your Android phone, in a window on your PC.</h1>
     <p class="lead">OpenVysor mirrors and controls an Android phone on Windows 10 and 11. It is one small native app, free and open source, and still in early development.</p>
     <div class="actions">
-      <a class="btn primary" href="#install">Install</a>
+      <a class="btn primary" href="OpenVysor.exe" download>Download for Windows</a>
+      <a class="btn" href="#install">Install steps</a>
       <a class="btn" href="#status">What works today</a>
     </div>
   </div>
@@ -99,19 +100,22 @@ footer p { margin: 4px 0; }
 
   <section id="install">
     <h2>Install</h2>
-    <p class="sub">There is no prebuilt download yet, so you build the app once from source. You need Windows 10 or 11 x64.</p>
+    <p class="sub">For Windows 10 or 11 x64. There is no installer: the app is one small file you can keep anywhere.</p>
     <ol>
-      <li>Install ADB:
+      <li>Install ADB, which OpenVysor uses to talk to the phone:
         <pre><code>winget install Google.PlatformTools</code></pre>
       </li>
-      <li>Install <a href="https://rustup.rs">Rust</a> and <a href="https://git-scm.com/download/win">Git</a>. Choose the default MSVC option in the Rust installer, and let it add the Visual Studio C++ build tools if it asks.</li>
-      <li>Download and build OpenVysor:
-        <pre><code>git clone -b native-rust-app https://github.com/SahinurDEV/OpenVysor.git
+      <li>Download the app:
+        <p><a class="btn primary" href="OpenVysor.exe" download>Download OpenVysor.exe (6 MB)</a></p>
+      </li>
+      <li>Open <code>OpenVysor.exe</code>. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+    </ol>
+    <p class="sub">SHA-256: <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
+    <h3>Build from source</h3>
+    <p>Install <a href="https://rustup.rs">Rust</a> with its default MSVC option, and <a href="https://git-scm.com/download/win">Git</a>, then run:</p>
+    <pre><code>git clone https://github.com/SahinurDEV/OpenVysor.git
 cd OpenVysor\native
 cargo build --release</code></pre>
-      </li>
-      <li>Run <code>target\release\openvysor-native.exe</code>. It is a single portable file, so you can copy it anywhere.</li>
-    </ol>
   </section>
 
   <section id="connect">
@@ -186,7 +190,7 @@ cargo build --release</code></pre>
       <div class="card">
         <h3>Not done yet</h3>
         <ul>
-          <li>Prebuilt download or installer</li>
+          <li>Installer and code signing</li>
           <li>Hardware video decoding (it uses the CPU)</li>
           <li>Sound in recordings</li>
           <li>Latency measurements</li>
@@ -199,17 +203,17 @@ cargo build --release</code></pre>
     <h2>Docs</h2>
     <p class="sub">The full project documents are on GitHub.</p>
     <div class="grid">
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/FEATURE_STATUS.md"><strong>Feature status</strong><br>Exactly what has been verified.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/WINDOWS_SETUP.md"><strong>Windows setup</strong><br>ADB lookup and building details.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/ARCHITECTURE.md"><strong>Architecture</strong><br>How the pieces fit together.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/TESTING.md"><strong>Testing</strong><br>How features are tested.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/FEATURE_STATUS.md"><strong>Feature status</strong><br>Exactly what has been verified.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/WINDOWS_SETUP.md"><strong>Windows setup</strong><br>ADB lookup and building details.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/ARCHITECTURE.md"><strong>Architecture</strong><br>How the pieces fit together.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/TESTING.md"><strong>Testing</strong><br>How features are tested.</a>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <p>Licensed under the <a href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/LICENSE">Apache License 2.0</a>. Uses <a href="https://github.com/Genymobile/scrcpy">scrcpy-server</a> for capture and input.</p>
+    <p>Licensed under the <a href="LICENSE.txt">Apache License 2.0</a> (<a href="NOTICE.txt">notice</a>). Includes <a href="https://github.com/Genymobile/scrcpy">scrcpy-server</a> for capture and input (<a href="scrcpy-LICENSE.txt">license</a>).</p>
     <p>OpenVysor is an independent project and is not affiliated with or endorsed by the makers of Vysor.</p>
   </div>
 </footer>

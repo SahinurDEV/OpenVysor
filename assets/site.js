@@ -147,11 +147,49 @@
     })();
   }
 
+  // Finds this computer, so the right download can be offered first.
+  const latest = "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/";
+  const downloads = {
+    "windows-exe": ["Windows", "OpenVysor.exe", ".exe, portable"],
+    "mac-arm-dmg": ["macOS (Apple Silicon)", latest + "OpenVysor-macos-arm64.dmg", ".dmg, preview build"],
+    "mac-intel-dmg": ["macOS (Intel)", latest + "OpenVysor-macos-x64.dmg", ".dmg, preview build"],
+    "linux-deb": ["Linux", latest + "OpenVysor-linux-x64.deb", ".deb, preview build"],
+  };
+  const agent = navigator.userAgent;
+  const platform = /Android|iPhone|iPad/.test(agent) ? "phone" : /Mac/.test(agent) ? "macos" : /Linux|X11/.test(agent) ? "linux" : "windows";
+  const macIsIntel = async () => {
+    try {
+      const hints = await navigator.userAgentData?.getHighEntropyValues(["architecture"]);
+      if (hints?.architecture) return hints.architecture === "x86";
+    } catch {}
+    try {
+      const gl = document.createElement("canvas").getContext("webgl");
+      const info = gl.getExtension("WEBGL_debug_renderer_info");
+      return /Intel/.test(gl.getParameter(info.UNMASKED_RENDERER_WEBGL));
+    } catch { return false; }
+  };
+  const offer = (key) => {
+    const [name, href, kind] = downloads[key];
+    $$("[data-download]").forEach((link) => {
+      link.href = href;
+      link.toggleAttribute("download", true);
+      $("span", link).textContent = `Download for ${name}`;
+    });
+    const note = $("[data-download-note]");
+    if (note) note.innerHTML = `${kind}. Not your computer? <a href="#install">See all downloads</a>.`;
+    $$(".dl").forEach((row) => row.classList.toggle("recommended", row.dataset.key === key));
+  };
+  if (platform === "phone") {
+    const note = $("[data-download-note]");
+    if (note) note.textContent = "OpenVysor runs on a computer. Open this page on your PC or Mac to download it.";
+  } else if (platform === "macos") {
+    offer("mac-arm-dmg");
+    macIsIntel().then((intel) => { if (intel) offer("mac-intel-dmg"); });
+  } else {
+    offer(platform === "linux" ? "linux-deb" : "windows-exe");
+  }
+
   // Tabs. The choice is shared by every tab set and kept between pages.
-  const platform = (() => {
-    const agent = navigator.userAgent;
-    return /Mac/.test(agent) ? "macos" : /Linux|X11/.test(agent) && !/Android/.test(agent) ? "linux" : "windows";
-  })();
   const chooseTab = (name) => $$("[data-tabs]").forEach((group) => {
     $$("[role=tab]", group).forEach((tab) => {
       const on = tab.dataset.tab === name;
@@ -174,7 +212,7 @@
       });
     });
   });
-  if ($("[data-tabs]")) chooseTab(store.get("platform") || platform);
+  if ($("[data-tabs]")) chooseTab(store.get("platform") || (platform === "phone" ? "windows" : platform));
 
   // Copy buttons
   $$(".term").forEach((block) => {

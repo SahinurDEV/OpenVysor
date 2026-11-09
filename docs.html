@@ -121,22 +121,18 @@
         </ol>
       </div>
       <div class="panel" role="tabpanel" id="dp-mac" aria-labelledby="d-mac" hidden>
-        <div class="callout warn" style="margin-top:0"><p>The macOS package isn't available yet. These are the steps it will use.</p></div>
+        <div class="callout warn" style="margin-top:0"><p>This is a preview build that hasn't been tried on a real Mac with a phone yet.</p></div>
         <ol class="steps">
           <li>Install ADB with Homebrew.<pre class="term"><code>brew install android-platform-tools</code></pre></li>
-          <li>Unzip the package for your Mac, and move <code>OpenVysor.app</code> to Applications.</li>
+          <li><a href="./#install">Download the .dmg</a> for your Mac, open it and drag <code>OpenVysor.app</code> to Applications.</li>
           <li>The app isn't notarized, so allow its first launch:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
         </ol>
       </div>
       <div class="panel" role="tabpanel" id="dp-lin" aria-labelledby="d-lin" hidden>
-        <div class="callout warn" style="margin-top:0"><p>The Linux package isn't available yet. These are the steps it will use on Debian and Ubuntu.</p></div>
+        <div class="callout warn" style="margin-top:0"><p>This is a preview build that hasn't mirrored a real phone yet.</p></div>
         <ol class="steps">
-          <li>Install ADB and the USB access rules.<pre class="term"><code>sudo apt install adb android-sdk-platform-tools-common</code></pre></li>
-          <li>Unpack the app and install it for your user:<pre class="term"><code>tar -xzf OpenVysor-*-linux-x64.tar.gz
-cd OpenVysor-*-linux-x64
-install -Dm755 openvysor ~/.local/bin/openvysor
-install -Dm644 openvysor.png ~/.local/share/icons/hicolor/32x32/apps/openvysor.png
-install -Dm644 openvysor.desktop ~/.local/share/applications/openvysor.desktop</code></pre></li>
+          <li><a href="./#install">Download the .deb</a> on Debian or Ubuntu, and install it. This also brings in ADB and its USB access rules.<pre class="term"><code>sudo apt install ./OpenVysor-linux-x64.deb</code></pre></li>
+          <li>On another distribution, install ADB and your distribution's Android udev rules, then unpack the .tar.gz and run <code>./openvysor</code>.</li>
         </ol>
         <p>It needs glibc 2.35 or later, X11 or Wayland, and OpenGL.</p>
       </div>

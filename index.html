@@ -27,7 +27,7 @@
       "url": "https://sahinurdev.github.io/OpenVysor/",
       "description": "Free, open-source Android screen mirroring and control for your computer, built on ADB and scrcpy-server.",
       "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "Windows 10, Windows 11",
+      "operatingSystem": "Windows, macOS, Linux",
       "softwareVersion": "0.3.0",
       "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
       "screenshot": "https://sahinurdev.github.io/OpenVysor/screenshot.png",
@@ -80,7 +80,7 @@
           "name": "Which computers does it run on?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Windows 10 and 11 are ready to try. macOS and Linux builds compile and pass their tests, and still need testing with a real phone."
+            "text": "Windows 10 and 11 are ready to try. Preview builds for macOS and Linux pass their tests, and still need testing with a real phone."
           }
         },
         {
@@ -146,10 +146,10 @@
         <h1 data-words>Your Android phone, in a <em>window</em> on your desktop.</h1>
         <p class="lead">Open the whole phone, or give every app its own phone-shaped window. Control it with your mouse and keyboard. A free, open-source way to use Android screen mirroring in one small native app.</p>
         <div class="actions">
-          <a class="btn primary" href="#install"><svg aria-hidden="true"><use href="#i-down"/></svg>Get OpenVysor</a>
-          <a class="btn" href="docs.html">Read the docs</a>
+          <a class="btn primary" href="#install" data-download><svg aria-hidden="true"><use href="#i-down"/></svg><span>Get OpenVysor</span></a>
+          <a class="btn" href="#install">All downloads</a>
         </div>
-        <p class="fine">Windows is ready to try. macOS and Linux builds are on the way.</p>
+        <p class="fine" data-download-note>For Windows, macOS and Linux.</p>
       </div>
 
       <div class="stage" aria-hidden="true">
@@ -255,23 +255,64 @@
           <button role="tab" type="button" data-tab="linux" id="t-lin" aria-controls="p-lin">Linux</button>
         </div>
         <div class="panel" role="tabpanel" id="p-win" aria-labelledby="t-win">
+          <div class="dls">
+          <div class="dl" data-key="windows-exe">
+            <div><b>Windows x64 (.exe)</b><span class="rec">Recommended for you</span><small>Portable: one file, nothing to install. Windows 10 or 11.</small></div>
+            <a class="btn small" href="OpenVysor.exe" download>Download .exe</a>
+          </div>
+          <div class="dl" data-key="windows-zip">
+            <div><b>Windows x64 (.zip)</b><span class="rec">Recommended for you</span><small>The same app, with its license files.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.zip" download>Download .zip</a>
+          </div>
+          </div>
           <ol class="steps">
             <li>Install ADB from a terminal.<pre class="term"><code>winget install Google.PlatformTools</code></pre></li>
-            <li>Download the app. There is no installer: it's one file you can keep anywhere.<p style="margin:12px 0 0"><a class="btn primary" href="OpenVysor.exe" download><svg aria-hidden="true"><use href="#i-down"/></svg>Download OpenVysor.exe · 6 MB</a></p></li>
-            <li>Open it. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+            <li>Open the app. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
           </ol>
-          <p class="hash">SHA-256 <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
+          <p class="hash">OpenVysor.exe SHA-256 <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
         </div>
         <div class="panel" role="tabpanel" id="p-mac" aria-labelledby="t-mac" hidden>
-          <span class="badge testing">Coming soon</span>
-          <p style="color:var(--soft);margin:14px 0 0">The macOS build for Apple Silicon and Intel is going through testing. It will be available here once it has run on a real Mac.</p>
-          <p style="margin:18px 0 0"><a class="btn small" href="docs.html#install">See the macOS setup steps</a></p>
+          <p class="preview"><span class="badge testing">Preview</span> Builds and passes its tests on macOS, but hasn't been tried on a real Mac with a phone yet.</p>
+          <div class="dls">
+          <div class="dl" data-key="mac-arm-dmg">
+            <div><b>Apple Silicon (.dmg)</b><span class="rec">Recommended for you</span><small>M-series Macs. Open it and drag the app to Applications.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-macos-arm64.dmg" download>Download .dmg</a>
+          </div>
+          <div class="dl" data-key="mac-intel-dmg">
+            <div><b>Intel (.dmg)</b><span class="rec">Recommended for you</span><small>Intel-based Macs.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-macos-x64.dmg" download>Download .dmg</a>
+          </div>
+          <div class="dl" data-key="mac-arm-zip">
+            <div><b>Apple Silicon (.zip)</b><span class="rec">Recommended for you</span><small>The app bundle, without a disk image.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-macos-arm64.zip" download>Download .zip</a>
+          </div>
+          <div class="dl" data-key="mac-intel-zip">
+            <div><b>Intel (.zip)</b><span class="rec">Recommended for you</span><small>The app bundle, without a disk image.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-macos-x64.zip" download>Download .zip</a>
+          </div>
+          </div>
+          <ol class="steps">
+            <li>Install ADB with Homebrew.<pre class="term"><code>brew install android-platform-tools</code></pre></li>
+            <li>The app isn't notarized, so allow its first launch:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
+          </ol>
         </div>
         <div class="panel" role="tabpanel" id="p-lin" aria-labelledby="t-lin" hidden>
-          <span class="badge testing">Coming soon</span>
-          <p style="color:var(--soft);margin:14px 0 0">The Linux build opens and passes its tests, but it hasn't mirrored a real phone yet. It will be available here once it has.</p>
-          <p style="margin:18px 0 0"><a class="btn small" href="docs.html#install">See the Linux setup steps</a></p>
+          <p class="preview"><span class="badge testing">Preview</span> Opens and passes its tests on Linux, but hasn't mirrored a real phone yet.</p>
+          <div class="dls">
+          <div class="dl" data-key="linux-deb">
+            <div><b>Debian or Ubuntu (.deb)</b><span class="rec">Recommended for you</span><small>x64. Adds OpenVysor to your applications menu.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-linux-x64.deb" download>Download .deb</a>
+          </div>
+          <div class="dl" data-key="linux-tar">
+            <div><b>Any distribution (.tar.gz)</b><span class="rec">Recommended for you</span><small>x64. Needs glibc 2.35 or later.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-linux-x64.tar.gz" download>Download .tar.gz</a>
+          </div>
+          </div>
+          <ol class="steps">
+            <li>Install the package. This also brings in ADB and its USB access rules.<pre class="term"><code>sudo apt install ./OpenVysor-linux-x64.deb</code></pre></li>
+          </ol>
         </div>
+        <p class="all-versions"><a href="https://github.com/SahinurDEV/OpenVysor/releases">All versions on GitHub</a> · <a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/SHA256SUMS.txt">Checksums</a></p>
       </div>
     </section>
 
@@ -318,7 +359,7 @@
         <details class="q"><summary>Do I need to root my Android phone?</summary><p>No. You only need to turn on USB debugging in Developer options.</p></details>
         <details class="q"><summary>Does my phone screen go through the cloud?</summary><p>No. Video and input travel only between your phone and your computer, over USB or your own Wi-Fi.</p></details>
         <details class="q"><summary>Can I control my phone with a mouse and keyboard?</summary><p>Yes, that is the point of the app. Clicking is confirmed on a real phone. Dragging, scrolling and typing are written and still being tested.</p></details>
-        <details class="q"><summary>Which computers does it run on?</summary><p>Windows 10 and 11 are ready to try. macOS and Linux builds compile and pass their tests, and still need testing with a real phone.</p></details>
+        <details class="q"><summary>Which computers does it run on?</summary><p>Windows 10 and 11 are ready to try. Preview builds for macOS and Linux pass their tests, and still need testing with a real phone.</p></details>
         <details class="q"><summary>Is OpenVysor related to Vysor or scrcpy?</summary><p>OpenVysor is an independent open-source alternative and is not affiliated with Vysor. It runs the open-source scrcpy-server on the phone for capture and input, with its own desktop client.</p></details>
       </div>
     </section>
@@ -327,7 +368,7 @@
       <h2>Put your phone on your desktop.</h2>
       <p>Free to use, with nothing to sign up for.</p>
       <div class="actions">
-        <a class="btn primary" href="#install"><svg aria-hidden="true"><use href="#i-down"/></svg>Get OpenVysor</a>
+        <a class="btn primary" href="#install" data-download><svg aria-hidden="true"><use href="#i-down"/></svg><span>Get OpenVysor</span></a>
         <a class="btn" href="docs.html">Read the docs</a>
       </div>
     </div>

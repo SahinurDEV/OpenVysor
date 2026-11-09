@@ -6,6 +6,9 @@
 <title>OpenVysor: Free Open-Source Android Screen Mirroring</title>
 <meta name="description" content="Mirror and control your Android phone from your computer. OpenVysor is a free, open-source app with no account, and every phone app in its own window.">
 <link rel="canonical" href="https://sahinurdev.github.io/OpenVysor/">
+<link rel="alternate" hreflang="en" href="https://sahinurdev.github.io/OpenVysor/">
+<link rel="alternate" hreflang="bn" href="https://sahinurdev.github.io/OpenVysor/bn.html">
+<link rel="alternate" hreflang="x-default" href="https://sahinurdev.github.io/OpenVysor/">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="OpenVysor">
@@ -28,7 +31,7 @@
       "description": "Free, open-source Android screen mirroring and control for your computer, built on ADB and scrcpy-server.",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "Windows, macOS, Linux",
-      "softwareVersion": "0.3.0",
+      "softwareVersion": "0.3.1",
       "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
       "screenshot": "https://sahinurdev.github.io/OpenVysor/screenshot.png",
       "downloadUrl": "https://sahinurdev.github.io/OpenVysor/OpenVysor.exe",
@@ -129,6 +132,7 @@
       <a href="#faq">FAQ</a>
       <a href="docs.html">Docs</a>
       <a href="https://github.com/SahinurDEV/OpenVysor">GitHub</a>
+      <a href="bn.html" hreflang="bn" lang="bn">বাংলা</a>
     </nav>
     <div class="bar-end">
       <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch between light and dark"><svg aria-hidden="true"><use href="#i-theme"/></svg></button>
@@ -292,8 +296,8 @@
           </div>
           </div>
           <ol class="steps">
-            <li>Install ADB with Homebrew.<pre class="term"><code>brew install android-platform-tools</code></pre></li>
-            <li>The app isn't notarized, so allow its first launch:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
+            <li>Drag the app to Applications and try opening it once. It isn't notarized yet, so macOS stops it. Then choose <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>.</li>
+            <li>If the app asks, choose <strong>Install ADB</strong>. It downloads Google's official tools for you.</li>
           </ol>
         </div>
         <div class="panel" role="tabpanel" id="p-lin" aria-labelledby="t-lin" hidden>
@@ -341,6 +345,8 @@
           <li data-state="testing">Wi-Fi pairing and phone sound<span class="badge testing">Being tested</span></li>
           <li data-state="testing">Recording to MP4<span class="badge testing">Being tested</span></li>
           <li data-state="testing">macOS and Linux<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Workspaces, per-app quality and key mapping<span class="badge testing">In the next release</span></li>
+          <li data-state="testing">File browser and phone notifications<span class="badge testing">In the next release</span></li>
           <li data-state="planned">Hardware video decoding<span class="badge planned">Not done yet</span></li>
           <li data-state="planned">Installer and code signing<span class="badge planned">Not done yet</span></li>
           <li data-state="planned">Sound in recordings<span class="badge planned">Not done yet</span></li>

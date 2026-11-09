@@ -155,6 +155,7 @@
     "mac-intel-dmg": ["macOS (Intel)", latest + "OpenVysor-macos-x64.dmg", ".dmg, preview build"],
     "linux-deb": ["Linux", latest + "OpenVysor-linux-x64.deb", ".deb, preview build"],
   };
+  const bangla = root.lang === "bn";
   const agent = navigator.userAgent;
   const platform = /Android|iPhone|iPad/.test(agent) ? "phone" : /Mac/.test(agent) ? "macos" : /Linux|X11/.test(agent) ? "linux" : "windows";
   const macIsIntel = async () => {
@@ -173,15 +174,15 @@
     $$("[data-download]").forEach((link) => {
       link.href = href;
       link.toggleAttribute("download", true);
-      $("span", link).textContent = `Download for ${name}`;
+      $("span", link).textContent = bangla ? `${name}-এর জন্য ডাউনলোড` : `Download for ${name}`;
     });
     const note = $("[data-download-note]");
-    if (note) note.innerHTML = `${kind}. Not your computer? <a href="#install">See all downloads</a>.`;
+    if (note) note.innerHTML = bangla ? `${kind}। অন্য কম্পিউটার? <a href="#install">সব ডাউনলোড দেখুন</a>।` : `${kind}. Not your computer? <a href="#install">See all downloads</a>.`;
     $$(".dl").forEach((row) => row.classList.toggle("recommended", row.dataset.key === key));
   };
   if (platform === "phone") {
     const note = $("[data-download-note]");
-    if (note) note.textContent = "OpenVysor runs on a computer. Open this page on your PC or Mac to download it.";
+    if (note) note.textContent = bangla ? "OpenVysor কম্পিউটারে চলে। ডাউনলোড করতে এই পেজটি PC বা Mac-এ খুলুন।" : "OpenVysor runs on a computer. Open this page on your PC or Mac to download it.";
   } else if (platform === "macos") {
     offer("mac-arm-dmg");
     macIsIntel().then((intel) => { if (intel) offer("mac-intel-dmg"); });

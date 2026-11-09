@@ -3,220 +3,347 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenVysor</title>
-<meta name="description" content="Free, open-source Android screen mirroring and control for Windows 10 and 11.">
+<title>OpenVysor: Free Open-Source Android Screen Mirroring</title>
+<meta name="description" content="Mirror and control your Android phone from your computer. OpenVysor is a free, open-source app with no account, and every phone app in its own window.">
+<link rel="canonical" href="https://sahinurdev.github.io/OpenVysor/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="OpenVysor">
+<meta property="og:url" content="https://sahinurdev.github.io/OpenVysor/">
+<meta property="og:title" content="OpenVysor: Free Open-Source Android Screen Mirroring">
+<meta property="og:description" content="Mirror and control your Android phone from your computer, with every phone app in its own window.">
+<meta property="og:image" content="https://sahinurdev.github.io/OpenVysor/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="OpenVysor: Android screen mirroring for your desktop">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "OpenVysor",
+      "url": "https://sahinurdev.github.io/OpenVysor/",
+      "description": "Free, open-source Android screen mirroring and control for your computer, built on ADB and scrcpy-server.",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Windows 10, Windows 11",
+      "softwareVersion": "0.3.0",
+      "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
+      "screenshot": "https://sahinurdev.github.io/OpenVysor/screenshot.png",
+      "downloadUrl": "https://sahinurdev.github.io/OpenVysor/OpenVysor.exe",
+      "license": "https://www.apache.org/licenses/LICENSE-2.0",
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is OpenVysor free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. It is free and open source under the Apache License 2.0, with no account and no paid tier."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do I need to root my Android phone?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. You only need to turn on USB debugging in Developer options."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does my phone screen go through the cloud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Video and input travel only between your phone and your computer, over USB or your own Wi-Fi."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I control my phone with a mouse and keyboard?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, that is the point of the app. Clicking is confirmed on a real phone. Dragging, scrolling and typing are written and still being tested."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which computers does it run on?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Windows 10 and 11 are ready to try. macOS and Linux builds compile and pass their tests, and still need testing with a real phone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is OpenVysor related to Vysor or scrcpy?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "OpenVysor is an independent open-source alternative and is not affiliated with Vysor. It runs the open-source scrcpy-server on the phone for capture and input, with its own desktop client."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<meta name="theme-color" content="#090c0f">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233ddc97'/%3E%3Crect x='10' y='5' width='12' height='22' rx='3' fill='none' stroke='%230e1114' stroke-width='2'/%3E%3Cpath d='M14 12.5v7l5.5-3.5z' fill='%230e1114'/%3E%3C/svg%3E">
-<style>
-:root {
-  color-scheme: light dark;
-  --bg: #f5f6f7; --card: #ffffff; --muted: #ecedf0; --text: #15191e; --soft: #5a6470;
-  --line: #dfe2e7; --accent: #0c8f6f; --on-accent: #ffffff; --warn: #a86400;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1114; --card: #171c21; --muted: #20262c; --text: #f1f3f5; --soft: #a0a9b4;
-    --line: #2a3138; --accent: #3ddc97; --on-accent: #08120d; --warn: #f0b35a;
-  }
-}
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
-.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-a { color: var(--accent); }
-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; padding-bottom: 20px; flex-wrap: wrap; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; color: var(--text); text-decoration: none; }
-.brand svg { width: 32px; height: 32px; }
-nav { display: flex; gap: 20px; font-size: 14px; flex-wrap: wrap; }
-nav a { color: var(--soft); text-decoration: none; }
-nav a:hover { color: var(--text); }
-.hero { padding: 56px 0 40px; }
-h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; max-width: 14em; font-weight: 600; }
-.lead { font-size: 19px; color: var(--soft); max-width: 36em; margin: 0 0 28px; }
-.actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.btn { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 15px; text-decoration: none; background: var(--muted); color: var(--text); }
-.btn.primary { background: var(--accent); color: var(--on-accent); }
-.shot { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(0, 0, 0, .14); }
-section { padding: 44px 0; border-top: 1px solid var(--line); }
-.hero + .shot-wrap { padding-bottom: 56px; }
-h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
-h3 { font-size: 17px; font-weight: 600; margin: 28px 0 8px; }
-.sub { color: var(--soft); margin: 0 0 24px; }
-ol, ul { padding-left: 22px; margin: 8px 0; }
-li { margin: 8px 0; }
-pre, code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 14px; }
-code { background: var(--muted); padding: 2px 6px; border-radius: 4px; overflow-wrap: anywhere; }
-pre { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0; }
-pre code { background: none; padding: 0; overflow-wrap: normal; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-.card h3 { margin-top: 0; }
-a.card { color: var(--soft); text-decoration: none; font-size: 15px; }
-a.card strong { color: var(--text); font-size: 16px; }
-a.card:hover { border-color: var(--accent); }
-.card ul { padding-left: 18px; font-size: 15px; }
-.ok { color: var(--accent); }
-.wait { color: var(--warn); }
-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-td { padding: 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-td:first-child { white-space: nowrap; padding-right: 24px; }
-dt { font-weight: 600; margin-top: 16px; }
-dd { margin: 2px 0 0; color: var(--soft); }
-footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 14px; color: var(--soft); }
-footer p { margin: 4px 0; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500;600&display=swap">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js" defer></script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#3ddc97"/><rect x="10" y="5" width="12" height="22" rx="3" fill="none" stroke="#0e1114" stroke-width="2"/><path d="M14 12.5v7l5.5-3.5z" fill="#0e1114"/></symbol>
+  <symbol id="i-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 20h14"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9V5h4M19 9V5h-4M5 15v4h4M19 15v4h-4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+</svg>
+
+<header class="bar">
   <div class="wrap">
-    <a class="brand" href="#">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#3ddc97"/><rect x="10" y="5" width="12" height="22" rx="3" fill="none" stroke="#0e1114" stroke-width="2"/><path d="M14 12.5v7l5.5-3.5z" fill="#0e1114"/></svg>
-      OpenVysor
-    </a>
-    <nav>
+    <a class="brand" href="./"><svg aria-hidden="true"><use href="#logo"/></svg>OpenVysor</a>
+    <nav class="links" id="links" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
       <a href="#install">Install</a>
-      <a href="#connect">Connect</a>
-      <a href="#use">Use</a>
       <a href="#status">Status</a>
-      <a href="#docs">Docs</a>
+      <a href="#faq">FAQ</a>
+      <a href="docs.html">Docs</a>
       <a href="https://github.com/SahinurDEV/OpenVysor">GitHub</a>
     </nav>
+    <div class="bar-end">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch between light and dark"><svg aria-hidden="true"><use href="#i-theme"/></svg></button>
+      <button class="icon-btn menu-btn" type="button" data-toggle="#links" aria-expanded="false" aria-label="Menu"><svg aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <a class="btn small primary brand-extra" href="#install">Download</a>
+    </div>
   </div>
 </header>
 
-<main class="wrap">
+<main id="main">
   <div class="hero">
-    <h1>Your Android phone, in a window on your PC.</h1>
-    <p class="lead">OpenVysor mirrors and controls an Android phone on Windows 10 and 11. It is one small native app, free and open source, and still in early development.</p>
-    <div class="actions">
-      <a class="btn primary" href="OpenVysor.exe" download>Download for Windows</a>
-      <a class="btn" href="#install">Install steps</a>
-      <a class="btn" href="#status">What works today</a>
+    <div class="wrap hero-grid">
+      <div>
+        <span class="tag"><i class="pulse"></i>Early development · v0.3</span>
+        <h1 data-words>Your Android phone, in a <em>window</em> on your desktop.</h1>
+        <p class="lead">Open the whole phone, or give every app its own phone-shaped window. Control it with your mouse and keyboard. A free, open-source way to use Android screen mirroring in one small native app.</p>
+        <div class="actions">
+          <a class="btn primary" href="#install"><svg aria-hidden="true"><use href="#i-down"/></svg>Get OpenVysor</a>
+          <a class="btn" href="docs.html">Read the docs</a>
+        </div>
+        <p class="fine">Windows is ready to try. macOS and Linux builds are on the way.</p>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <div class="float f1"><div class="pw">
+          <div class="strip"><b>Clock</b><svg><use href="#i-back"/></svg><svg><use href="#i-max"/></svg><svg><use href="#i-x"/></svg></div>
+          <div class="screen clock">
+            <div class="clock-time">10:24</div>
+            <div class="clock-day">Monday, November 9</div>
+            <svg class="dial" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="none" stroke="#2c3a3a" stroke-width="2"/><g class="hand slow"><path d="M50 50V26" stroke="#eef1f4" stroke-width="3" stroke-linecap="round"/></g><g class="hand"><path d="M50 56V12" stroke="#3ddc97" stroke-width="1.6" stroke-linecap="round"/></g><circle cx="50" cy="50" r="3.4" fill="#3ddc97"/></svg>
+          </div>
+        </div></div>
+
+        <div class="float f2"><div class="pw">
+          <div class="strip"><b>Calculator</b><svg><use href="#i-back"/></svg><svg><use href="#i-max"/></svg><svg><use href="#i-x"/></svg></div>
+          <div class="screen calc">
+            <svg class="cursor" viewBox="0 0 20 20"><path d="M3 2v14l4-3.4 2.6 5.6 2.4-1.1-2.5-5.5H15z" fill="#fff" stroke="#05070a" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            <div class="calc-exp" data-exp>&nbsp;</div>
+            <div class="calc-out" data-out>0</div>
+            <div class="keys" data-calc>
+              <span>7</span><span>8</span><span>9</span><span class="op">×</span>
+              <span>4</span><span>5</span><span>6</span><span class="op">−</span>
+              <span>1</span><span>2</span><span>3</span><span class="op">+</span>
+              <span>0</span><span>.</span><span>%</span><span class="eq">=</span>
+            </div>
+          </div>
+        </div></div>
+
+        <div class="float f3"><div class="pw">
+          <div class="strip"><b>Notes</b><svg><use href="#i-back"/></svg><svg><use href="#i-max"/></svg><svg><use href="#i-x"/></svg></div>
+          <div class="screen list-app">
+            <h4>Notes</h4>
+            <div class="row"><i class="dot" style="background:#f5b64f"></i><div class="lines"><i></i><i></i></div></div>
+            <div class="row"><i class="dot" style="background:#3ddc97"></i><div class="lines"><i></i><i></i></div></div>
+            <div class="row"><i class="dot" style="background:#6c8cff"></i><div class="lines"><i></i><i></i></div></div>
+            <div class="row"><i class="dot" style="background:#ff6b76"></i><div class="lines"><i></i><i></i></div></div>
+            <div class="row"><i class="dot" style="background:#3ddc97"></i><div class="lines"><i></i><i></i></div></div>
+            <div class="row"><i class="dot" style="background:#f5b64f"></i><div class="lines"><i></i><i></i></div></div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="stats reveal">
+        <div class="stat"><b data-count="6">6<small> MB</small></b><span>Portable Windows app</span></div>
+        <div class="stat"><b>245–367<small> ms</small></b><span>For a phone window to appear</span></div>
+        <div class="stat"><b data-count="0.95">0.95<small> s</small></b><span>To the first picture</span></div>
+        <div class="stat"><b>Apache 2.0</b><span>Free and open source</span></div>
+      </div>
+      <p class="note">Timings measured over USB on one phone (Nothing A059, Android 16), after the first window of a session.</p>
     </div>
   </div>
-  <div class="shot-wrap">
-    <img class="shot" src="screenshot.png" width="1040" height="680" alt="The OpenVysor Apps page: a sidebar and a searchable grid of sample apps.">
+
+  <div class="wrap">
+    <section class="block" aria-label="The app">
+      <div class="shot-frame reveal">
+        <img class="shot" src="screenshot.png" width="1040" height="680" loading="lazy" alt="OpenVysor desktop app showing a searchable grid of Android apps, each of which opens in its own window">
+      </div>
+    </section>
+
+    <section class="block" id="how">
+      <div class="reveal">
+        <p class="eyebrow">How it works</p>
+        <h2>A straight line from the phone to your screen.</h2>
+        <p class="sub">No account, no cloud and no app to install from a store. Video and input travel only between your phone and your computer.</p>
+      </div>
+      <div class="path reveal">
+        <div class="node"><small>01</small><h3>Your phone</h3><p>scrcpy-server captures the screen and encodes it as H.264.</p><div class="wire"><i></i><i></i></div></div>
+        <div class="node"><small>02</small><h3>ADB tunnel</h3><p>Android's own debug bridge carries it over USB or Wi-Fi.</p><div class="wire"><i></i><i></i></div></div>
+        <div class="node"><small>03</small><h3>Native decoder</h3><p>A Rust client decodes each frame and keeps only the newest.</p><div class="wire"><i></i><i></i></div></div>
+        <div class="node"><small>04</small><h3>Your window</h3><p>The picture appears the moment a frame arrives, with no browser in between.</p></div>
+      </div>
+      <div class="legend"><span><i></i>Screen video</span><span class="back"><i></i>Your clicks and keys</span></div>
+    </section>
+
+    <section class="block" id="features">
+      <div class="reveal">
+        <p class="eyebrow">Features</p>
+        <h2>Built around how you actually use a phone.</h2>
+        <p class="sub">The labels are honest: "tested" means it has worked on a real phone, not just in code.</p>
+      </div>
+      <div class="bento">
+        <article class="cell wide reveal"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="2"/><rect x="13" y="4" width="8" height="16" rx="2"/></svg></div><h3>One app, one window</h3><p>Each app runs on its own virtual display, so you can keep several open side by side while the phone stays free.</p></article>
+        <article class="cell wide reveal" style="--d:1"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v16l4.6-3.8 3 6.3 2.6-1.3-2.8-6.1H18z"/></svg></div><h3>Mouse control</h3><p>Click on the window and the phone responds. Right-click goes back, and the middle button goes home.</p></article>
+        <article class="cell reveal"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9a14 14 0 0 1 18 0M6.5 13a9 9 0 0 1 11 0M10 17a3.5 3.5 0 0 1 4 0"/></svg></div><h3>Wi-Fi pairing</h3><p>Scan a QR code on the phone, or use a pairing code or IP address.</p></article>
+        <article class="cell reveal" style="--d:1"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0-11L7.5 8.5M12 4l4.5 4.5M5 20h14"/></svg></div><h3>Drag and drop</h3><p>Drop an APK to install it, or any other file to send it to the phone.</p></article>
+        <article class="cell reveal" style="--d:2"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="3" width="11" height="14" rx="2"/><path d="M5 7v12a2 2 0 0 0 2 2h9"/></svg></div><h3>Clipboard sync</h3><p>Copy on one side and paste on the other. You choose when it's on.</p></article>
+        <article class="cell wide reveal"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg></div><h3>Recording and screenshots</h3><p>Save the screen to MP4 or PNG straight into your Videos and Pictures folders.</p></article>
+        <article class="cell wide reveal" style="--d:1"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></div><h3>Phone sound on your computer</h3><p>Hear the phone through your speakers while you mirror the whole screen.</p></article>
+      </div>
+    </section>
+
+    <section class="block" id="install">
+      <div class="reveal">
+        <p class="eyebrow">Install</p>
+        <h2>Up and running in about a minute.</h2>
+        <p class="sub">You need Android's ADB tool and a phone with USB debugging turned on.</p>
+      </div>
+      <div class="reveal">
+        <div class="tabs" role="tablist" aria-label="Your computer" data-tabs>
+          <button role="tab" type="button" data-tab="windows" id="t-win" aria-controls="p-win">Windows</button>
+          <button role="tab" type="button" data-tab="macos" id="t-mac" aria-controls="p-mac">macOS</button>
+          <button role="tab" type="button" data-tab="linux" id="t-lin" aria-controls="p-lin">Linux</button>
+        </div>
+        <div class="panel" role="tabpanel" id="p-win" aria-labelledby="t-win">
+          <ol class="steps">
+            <li>Install ADB from a terminal.<pre class="term"><code>winget install Google.PlatformTools</code></pre></li>
+            <li>Download the app. There is no installer: it's one file you can keep anywhere.<p style="margin:12px 0 0"><a class="btn primary" href="OpenVysor.exe" download><svg aria-hidden="true"><use href="#i-down"/></svg>Download OpenVysor.exe · 6 MB</a></p></li>
+            <li>Open it. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+          </ol>
+          <p class="hash">SHA-256 <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
+        </div>
+        <div class="panel" role="tabpanel" id="p-mac" aria-labelledby="t-mac" hidden>
+          <span class="badge testing">Coming soon</span>
+          <p style="color:var(--soft);margin:14px 0 0">The macOS build for Apple Silicon and Intel is going through testing. It will be available here once it has run on a real Mac.</p>
+          <p style="margin:18px 0 0"><a class="btn small" href="docs.html#install">See the macOS setup steps</a></p>
+        </div>
+        <div class="panel" role="tabpanel" id="p-lin" aria-labelledby="t-lin" hidden>
+          <span class="badge testing">Coming soon</span>
+          <p style="color:var(--soft);margin:14px 0 0">The Linux build opens and passes its tests, but it hasn't mirrored a real phone yet. It will be available here once it has.</p>
+          <p style="margin:18px 0 0"><a class="btn small" href="docs.html#install">See the Linux setup steps</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="status">
+      <div class="reveal">
+        <p class="eyebrow">Status</p>
+        <h2>What works today, plainly.</h2>
+        <p class="sub">OpenVysor is young, and testing so far has used one phone running Android 16.</p>
+      </div>
+      <div class="reveal">
+        <div class="chips" role="group" aria-label="Filter by status">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="tested" aria-pressed="false">Tested</button>
+          <button type="button" data-filter="testing" aria-pressed="false">Being tested</button>
+          <button type="button" data-filter="planned" aria-pressed="false">Not done yet</button>
+        </div>
+        <ul class="matrix">
+          <li data-state="tested">Live video of an app in its own window<span class="badge">Tested</span></li>
+          <li data-state="tested">Tapping on the phone with the mouse<span class="badge">Tested</span></li>
+          <li data-state="tested">Phone-shaped windows, toolbar and full screen<span class="badge">Tested</span></li>
+          <li data-state="tested">Clean exit with nothing left running<span class="badge">Tested</span></li>
+          <li data-state="testing">Whole-phone mirroring<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Dragging, scrolling, typing and rotation<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Reconnecting automatically<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Clipboard sync, and drag and drop<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Wi-Fi pairing and phone sound<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">Recording to MP4<span class="badge testing">Being tested</span></li>
+          <li data-state="testing">macOS and Linux<span class="badge testing">Being tested</span></li>
+          <li data-state="planned">Hardware video decoding<span class="badge planned">Not done yet</span></li>
+          <li data-state="planned">Installer and code signing<span class="badge planned">Not done yet</span></li>
+          <li data-state="planned">Sound in recordings<span class="badge planned">Not done yet</span></li>
+          <li data-state="planned">End-to-end latency measurements<span class="badge planned">Not done yet</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="block" id="faq">
+      <div class="reveal">
+        <p class="eyebrow">FAQ</p>
+        <h2>Android screen mirroring, answered.</h2>
+      </div>
+      <div class="reveal faq">
+        <details class="q"><summary>Is OpenVysor free?</summary><p>Yes. It is free and open source under the Apache License 2.0, with no account and no paid tier.</p></details>
+        <details class="q"><summary>Do I need to root my Android phone?</summary><p>No. You only need to turn on USB debugging in Developer options.</p></details>
+        <details class="q"><summary>Does my phone screen go through the cloud?</summary><p>No. Video and input travel only between your phone and your computer, over USB or your own Wi-Fi.</p></details>
+        <details class="q"><summary>Can I control my phone with a mouse and keyboard?</summary><p>Yes, that is the point of the app. Clicking is confirmed on a real phone. Dragging, scrolling and typing are written and still being tested.</p></details>
+        <details class="q"><summary>Which computers does it run on?</summary><p>Windows 10 and 11 are ready to try. macOS and Linux builds compile and pass their tests, and still need testing with a real phone.</p></details>
+        <details class="q"><summary>Is OpenVysor related to Vysor or scrcpy?</summary><p>OpenVysor is an independent open-source alternative and is not affiliated with Vysor. It runs the open-source scrcpy-server on the phone for capture and input, with its own desktop client.</p></details>
+      </div>
+    </section>
+
+    <div class="cta reveal">
+      <h2>Put your phone on your desktop.</h2>
+      <p>Free to use, with nothing to sign up for.</p>
+      <div class="actions">
+        <a class="btn primary" href="#install"><svg aria-hidden="true"><use href="#i-down"/></svg>Get OpenVysor</a>
+        <a class="btn" href="docs.html">Read the docs</a>
+      </div>
+    </div>
   </div>
-
-  <section id="install">
-    <h2>Install</h2>
-    <p class="sub">For Windows 10 or 11 x64. There is no installer: the app is one small file you can keep anywhere.</p>
-    <ol>
-      <li>Install ADB, which OpenVysor uses to talk to the phone:
-        <pre><code>winget install Google.PlatformTools</code></pre>
-      </li>
-      <li>Download the app:
-        <p><a class="btn primary" href="OpenVysor.exe" download>Download OpenVysor.exe (6 MB)</a></p>
-      </li>
-      <li>Open <code>OpenVysor.exe</code>. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
-    </ol>
-    <p class="sub">SHA-256: <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
-    <h3>Build from source</h3>
-    <p>Install <a href="https://rustup.rs">Rust</a> with its default MSVC option, and <a href="https://git-scm.com/download/win">Git</a>, then run:</p>
-    <pre><code>git clone https://github.com/SahinurDEV/OpenVysor.git
-cd OpenVysor\native
-cargo build --release</code></pre>
-  </section>
-
-  <section id="connect">
-    <h2>Connect a phone</h2>
-    <p class="sub">USB is the simplest way to start.</p>
-    <div class="grid">
-      <div class="card">
-        <h3>With a USB cable</h3>
-        <ol>
-          <li>On the phone, open Developer options and turn on <strong>USB debugging</strong>.</li>
-          <li>Connect a USB data cable and tap <strong>Allow</strong> on the phone.</li>
-          <li>In OpenVysor, choose <strong>Mirror screen</strong> on the Devices page.</li>
-        </ol>
-      </div>
-      <div class="card">
-        <h3>Over Wi-Fi <span class="wait">(in testing)</span></h3>
-        <ol>
-          <li>Put the phone and PC on the same Wi-Fi.</li>
-          <li>Choose <strong>Connect over Wi-Fi</strong> in OpenVysor.</li>
-          <li>On the phone, open Developer options, then <strong>Wireless debugging</strong>, and scan the QR code. A pairing code or IP address also works.</li>
-        </ol>
-      </div>
-    </div>
-  </section>
-
-  <section id="use">
-    <h2>Use it</h2>
-    <p class="sub">Every mirror opens as its own phone-shaped window, showing only the screen.</p>
-    <table>
-      <tr><td><strong>Mirror screen</strong></td><td>Shows the whole phone in one window.</td></tr>
-      <tr><td><strong>Open an app</strong></td><td>Opens one app in its own window. Open several and arrange them side by side.</td></tr>
-      <tr><td><code>Alt</code> + <code>←</code> / <code>→</code></td><td>Switches between phone windows.</td></tr>
-      <tr><td><code>F11</code></td><td>Turns full screen on or off.</td></tr>
-      <tr><td>Drop a file</td><td>An APK installs on the phone; any other file is sent to it.</td></tr>
-      <tr><td><strong>Settings</strong></td><td>Theme, resolution, quality, frame rate, phone sound and clipboard sync.</td></tr>
-    </table>
-    <h3>Troubleshooting</h3>
-    <dl>
-      <dt>ADB is not found</dt>
-      <dd>Install it with the winget command above and restart OpenVysor, or set <code>OPENVYSOR_ADB</code> to the full path of <code>adb.exe</code>.</dd>
-      <dt>The phone is not listed</dt>
-      <dd>Use a data cable rather than a charge-only cable, and check the phone for an Allow prompt.</dd>
-      <dt>The picture appears but touches do nothing</dt>
-      <dd>Some manufacturers need an extra setting. On Xiaomi phones, turn on <strong>USB debugging (Security settings)</strong>.</dd>
-    </dl>
-  </section>
-
-  <section id="status">
-    <h2>What works today</h2>
-    <p class="sub">Only features tried on a real phone are listed as tested. Testing so far used one phone running Android 16.</p>
-    <div class="grid">
-      <div class="card">
-        <h3 class="ok">Tested on a real phone</h3>
-        <ul>
-          <li>Live video of an app in its own window</li>
-          <li>Tapping on the phone with the mouse</li>
-          <li>Phone-shaped windows, toolbar and full screen</li>
-          <li>Clean exit with nothing left running</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3 class="wait">Written, still being tested</h3>
-        <ul>
-          <li>Whole-phone mirroring</li>
-          <li>Dragging, scrolling, typing and rotation</li>
-          <li>Reconnecting automatically</li>
-          <li>Clipboard sync and drag and drop</li>
-          <li>Wi-Fi pairing and phone sound on the PC</li>
-          <li>Recording to MP4</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Not done yet</h3>
-        <ul>
-          <li>Installer and code signing</li>
-          <li>Hardware video decoding (it uses the CPU)</li>
-          <li>Sound in recordings</li>
-          <li>Latency measurements</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section id="docs">
-    <h2>Docs</h2>
-    <p class="sub">The full project documents are on GitHub.</p>
-    <div class="grid">
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/FEATURE_STATUS.md"><strong>Feature status</strong><br>Exactly what has been verified.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/WINDOWS_SETUP.md"><strong>Windows setup</strong><br>ADB lookup and building details.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/ARCHITECTURE.md"><strong>Architecture</strong><br>How the pieces fit together.</a>
-      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/main/docs/TESTING.md"><strong>Testing</strong><br>How features are tested.</a>
-    </div>
-  </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <p>Licensed under the <a href="LICENSE.txt">Apache License 2.0</a> (<a href="NOTICE.txt">notice</a>). Includes <a href="https://github.com/Genymobile/scrcpy">scrcpy-server</a> for capture and input (<a href="scrcpy-LICENSE.txt">license</a>).</p>
-    <p>OpenVysor is an independent project and is not affiliated with or endorsed by the makers of Vysor.</p>
+    <p>Apache License 2.0. Includes scrcpy-server for capture and input. OpenVysor is an independent project and is not affiliated with or endorsed by the makers of Vysor.</p>
+    <nav aria-label="Footer">
+      <a href="docs.html">Docs</a>
+      <a href="LICENSE.txt">License</a>
+      <a href="NOTICE.txt">Notice</a>
+      <a href="scrcpy-LICENSE.txt">scrcpy license</a>
+    </nav>
   </div>
 </footer>
-
 </body>
 </html>

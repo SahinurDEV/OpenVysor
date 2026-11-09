@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenVysor Docs: Install, Connect and Mirror Android</title>
+<meta name="description" content="How to install OpenVysor on Windows, macOS and Linux, connect an Android phone with USB or Wi-Fi, and use every control.">
+<link rel="canonical" href="https://sahinurdev.github.io/OpenVysor/docs.html">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="OpenVysor">
+<meta property="og:url" content="https://sahinurdev.github.io/OpenVysor/docs.html">
+<meta property="og:title" content="OpenVysor Docs: Install, Connect and Mirror Android">
+<meta property="og:description" content="Install OpenVysor, connect an Android phone, and learn every control.">
+<meta property="og:image" content="https://sahinurdev.github.io/OpenVysor/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "headline": "Using OpenVysor",
+  "description": "Install OpenVysor, connect an Android phone with USB or Wi-Fi, and learn every control.",
+  "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
+  "dateModified": "2026-11-09",
+  "url": "https://sahinurdev.github.io/OpenVysor/docs.html"
+}
+</script>
+<meta name="theme-color" content="#090c0f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233ddc97'/%3E%3Crect x='10' y='5' width='12' height='22' rx='3' fill='none' stroke='%230e1114' stroke-width='2'/%3E%3Cpath d='M14 12.5v7l5.5-3.5z' fill='%230e1114'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500;600&display=swap">
+<script>document.documentElement.classList.add("js")</script>
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#3ddc97"/><rect x="10" y="5" width="12" height="22" rx="3" fill="none" stroke="#0e1114" stroke-width="2"/><path d="M14 12.5v7l5.5-3.5z" fill="#0e1114"/></symbol>
+  <symbol id="i-theme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+</svg>
+
+<header class="bar bar-wide">
+  <div class="wrap">
+    <a class="brand" href="./"><svg aria-hidden="true"><use href="#logo"/></svg>OpenVysor</a>
+    <nav class="links" id="links" aria-label="Main">
+      <a href="./">Home</a>
+      <a href="docs.html" aria-current="page">Docs</a>
+      <a href="./#status">Status</a>
+      <a href="https://github.com/SahinurDEV/OpenVysor">GitHub</a>
+    </nav>
+    <div class="bar-end">
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch between light and dark"><svg aria-hidden="true"><use href="#i-theme"/></svg></button>
+      <button class="icon-btn menu-btn" type="button" data-toggle="#links" aria-expanded="false" aria-label="Menu"><svg aria-hidden="true"><use href="#i-menu"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<div class="docs">
+  <button class="btn side-toggle" type="button" data-toggle="#side" aria-expanded="false">Browse the docs</button>
+  <aside class="side" id="side">
+    <div class="search">
+      <input type="search" placeholder="Search the docs" aria-label="Search the docs">
+      <kbd>/</kbd>
+    </div>
+    <nav aria-label="Documentation">
+      <h5>Start</h5>
+      <a href="#overview">Overview</a>
+      <a href="#install">Install</a>
+      <a href="#connect-usb">Connect with USB</a>
+      <a href="#connect-wifi">Connect over Wi-Fi</a>
+      <h5>Use</h5>
+      <a href="#windows">Phone windows</a>
+      <a href="#controls">Mouse and keyboard</a>
+      <a href="#toolbar">Window toolbar</a>
+      <a href="#files">Files and apps</a>
+      <a href="#capture">Screenshots and recording</a>
+      <a href="#settings">Settings</a>
+      <h5>Help</h5>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#status">What is tested</a>
+      <h5>Project</h5>
+      <a href="#architecture">Architecture</a>
+      <a href="#build">Build from source</a>
+      <a href="#license">License</a>
+      <p class="no-hits" hidden>Nothing matches that search.</p>
+    </nav>
+  </aside>
+
+  <main class="doc" id="main">
+    <header>
+      <p class="eyebrow">Documentation</p>
+      <h1>Using OpenVysor</h1>
+      <p>Everything you need to install the app, connect a phone and get the most from it.</p>
+    </header>
+
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>OpenVysor shows an Android phone on your computer and lets you control it. You can mirror the whole screen, or open a single app in its own phone-shaped window while the phone itself stays free.</p>
+      <p>It's a native desktop app that uses Android's <strong>ADB</strong> tool to reach the phone and <strong>scrcpy-server</strong> to capture the screen. There's no account, and nothing goes through the cloud.</p>
+      <div class="callout warn"><p><strong>Early development.</strong> Some features are written but haven't been confirmed on a real phone yet. <a href="#status">See what is tested</a>.</p></div>
+    </section>
+
+    <section id="install">
+      <h2>Install</h2>
+      <p>Every computer needs ADB. Pick yours:</p>
+      <div class="tabs" role="tablist" aria-label="Your computer" data-tabs>
+        <button role="tab" type="button" data-tab="windows" id="d-win" aria-controls="dp-win">Windows</button>
+        <button role="tab" type="button" data-tab="macos" id="d-mac" aria-controls="dp-mac">macOS</button>
+        <button role="tab" type="button" data-tab="linux" id="d-lin" aria-controls="dp-lin">Linux</button>
+      </div>
+      <div class="panel" role="tabpanel" id="dp-win" aria-labelledby="d-win">
+        <ol class="steps">
+          <li>Install ADB.<pre class="term"><code>winget install Google.PlatformTools</code></pre></li>
+          <li><a href="OpenVysor.exe" download>Download OpenVysor.exe</a> for Windows 10 or 11 x64, and keep it anywhere.</li>
+          <li>Open it. SmartScreen may warn you because the app isn't code-signed yet. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+        </ol>
+      </div>
+      <div class="panel" role="tabpanel" id="dp-mac" aria-labelledby="d-mac" hidden>
+        <div class="callout warn" style="margin-top:0"><p>The macOS package isn't available yet. These are the steps it will use.</p></div>
+        <ol class="steps">
+          <li>Install ADB with Homebrew.<pre class="term"><code>brew install android-platform-tools</code></pre></li>
+          <li>Unzip the package for your Mac, and move <code>OpenVysor.app</code> to Applications.</li>
+          <li>The app isn't notarized, so allow its first launch:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
+        </ol>
+      </div>
+      <div class="panel" role="tabpanel" id="dp-lin" aria-labelledby="d-lin" hidden>
+        <div class="callout warn" style="margin-top:0"><p>The Linux package isn't available yet. These are the steps it will use on Debian and Ubuntu.</p></div>
+        <ol class="steps">
+          <li>Install ADB and the USB access rules.<pre class="term"><code>sudo apt install adb android-sdk-platform-tools-common</code></pre></li>
+          <li>Unpack the app and install it for your user:<pre class="term"><code>tar -xzf OpenVysor-*-linux-x64.tar.gz
+cd OpenVysor-*-linux-x64
+install -Dm755 openvysor ~/.local/bin/openvysor
+install -Dm644 openvysor.png ~/.local/share/icons/hicolor/32x32/apps/openvysor.png
+install -Dm644 openvysor.desktop ~/.local/share/applications/openvysor.desktop</code></pre></li>
+        </ol>
+        <p>It needs glibc 2.35 or later, X11 or Wayland, and OpenGL.</p>
+      </div>
+      <h3>If ADB is somewhere unusual</h3>
+      <p>OpenVysor looks in your <code>PATH</code>, your Android SDK folder and the usual install locations. To point it at a specific copy, set <code>OPENVYSOR_ADB</code> to the full path of the program.</p>
+    </section>
+
+    <section id="connect-usb">
+      <h2>Connect with USB</h2>
+      <p>USB is the simplest way to start and usually the smoothest.</p>
+      <ol class="steps">
+        <li>On the phone, open <strong>Settings</strong>, then <strong>About phone</strong>, and tap <strong>Build number</strong> seven times to unlock Developer options.</li>
+        <li>Open <strong>Developer options</strong> and turn on <strong>USB debugging</strong>.</li>
+        <li>Connect a USB data cable, unlock the phone and tap <strong>Allow</strong>.</li>
+        <li>The phone appears on the <strong>Devices</strong> page. Choose <strong>Mirror screen</strong> or <strong>Open an app</strong>.</li>
+      </ol>
+    </section>
+
+    <section id="connect-wifi">
+      <h2>Connect over Wi-Fi</h2>
+      <p>Needs Android 11 or later, with the phone and computer on the same network. Choose <strong>Connect over Wi-Fi</strong> on the Devices page, then use one of these:</p>
+      <div class="table-box"><table>
+        <tr><th>Method</th><th>What to do on the phone</th></tr>
+        <tr><td>QR code</td><td>Open Developer options, then Wireless debugging. Tap <strong>Pair device with QR code</strong> and scan the code in OpenVysor.</td></tr>
+        <tr><td>Pairing code</td><td>Tap <strong>Pair device with pairing code</strong>. Enter its IP address, port and 6-digit code in OpenVysor, then connect on the IP address tab.</td></tr>
+        <tr><td>IP address</td><td>For a phone that's already paired. Enter the address and port shown at the top of Wireless debugging.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="windows">
+      <h2>Phone windows</h2>
+      <p>Every mirror opens as its own borderless window, shaped like the phone and showing only the screen.</p>
+      <ul>
+        <li><strong>Mirror screen</strong> shows the whole phone in one window.</li>
+        <li><strong>Open an app</strong> lists the phone's apps. Pick one and it opens on its own virtual display, so you can open several at once.</li>
+        <li><strong>Arrange windows</strong> on the Devices page lines them up side by side.</li>
+        <li>Drag the dark strip at the top of a window to move it.</li>
+      </ul>
+      <p>If a phone is unplugged, the window offers <strong>Reconnect</strong>, and tries to resume by itself when the phone comes back.</p>
+    </section>
+
+    <section id="controls">
+      <h2>Mouse and keyboard</h2>
+      <div class="table-box"><table>
+        <tr><th>Input</th><th>What it does</th></tr>
+        <tr><td>Left click and drag</td><td>Touch and swipe</td></tr>
+        <tr><td>Right click</td><td>Back, or wakes the screen</td></tr>
+        <tr><td>Middle click</td><td>Home</td></tr>
+        <tr><td>Scroll wheel</td><td>Scrolls under the pointer</td></tr>
+        <tr><td>Typing</td><td>Goes to the phone's focused field</td></tr>
+        <tr><td><kbd>F11</kbd></td><td>Full screen on or off</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></td><td>Moves to the previous or next phone window</td></tr>
+      </table></div>
+    </section>
+
+    <section id="toolbar">
+      <h2>Window toolbar</h2>
+      <p>Hover over a button in the strip at the top of a phone window to see its name. App windows show the shorter set.</p>
+      <div class="table-box"><table>
+        <tr><th>Button</th><th>Available in</th></tr>
+        <tr><td>Back</td><td>All windows</td></tr>
+        <tr><td>Home, Recent apps</td><td>Whole-phone windows</td></tr>
+        <tr><td>Screenshot</td><td>Whole-phone windows</td></tr>
+        <tr><td>Phone sound</td><td>Whole-phone windows</td></tr>
+        <tr><td>Record, Full screen, Close</td><td>All windows</td></tr>
+      </table></div>
+    </section>
+
+    <section id="files">
+      <h2>Files and apps</h2>
+      <p>Drag files onto a phone window. An <code>.apk</code> installs on the phone, and any other file goes to its <strong>Download</strong> folder. A message at the bottom of the window confirms the result.</p>
+    </section>
+
+    <section id="capture">
+      <h2>Screenshots and recording</h2>
+      <ul>
+        <li>Screenshots save as PNG to <code>Pictures/OpenVysor</code>.</li>
+        <li>Recordings save as MP4 to <code>Videos/OpenVysor</code>. They contain video only, for now.</li>
+        <li>Rotating the phone ends a recording, because an MP4 video track has one fixed size.</li>
+      </ul>
+    </section>
+
+    <section id="settings">
+      <h2>Settings</h2>
+      <p>Quality changes apply to windows you open afterwards.</p>
+      <div class="table-box"><table>
+        <tr><th>Setting</th><th>Choices</th><th>Good to know</th></tr>
+        <tr><td>Theme</td><td>Light, Dark</td><td></td></tr>
+        <tr><td>Resolution</td><td>Native, 2400p to 1024p</td><td>1600p keeps motion smooth on most computers</td></tr>
+        <tr><td>Quality</td><td>2 to 32 Mbps</td><td>Higher is sharper and uses more bandwidth</td></tr>
+        <tr><td>Frame rate</td><td>30 to 120 FPS</td><td>60 FPS suits most uses</td></tr>
+        <tr><td>Phone sound</td><td>On, Off</td><td>The phone goes silent while mirroring</td></tr>
+        <tr><td>Clipboard sync</td><td>On, Off</td><td>See <a href="#privacy">Privacy</a></td></tr>
+      </table></div>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>Troubleshooting</h2>
+      <details class="q"><summary>ADB was not found</summary><p>Install ADB as shown in <a href="#install">Install</a>, then restart OpenVysor. Or set <code>OPENVYSOR_ADB</code> to the full path of the program.</p></details>
+      <details class="q"><summary>The phone isn't listed</summary><p>Use a data cable rather than a charge-only cable, try another port, and check that USB debugging is on.</p></details>
+      <details class="q"><summary>It says "Needs authorization"</summary><p>Unlock the phone and tap <strong>Allow</strong> on the USB debugging prompt. If no prompt appears, choose <strong>Revoke USB debugging authorizations</strong> in Developer options and reconnect.</p></details>
+      <details class="q"><summary>It says "No permission" on Linux</summary><p>Linux is blocking USB access. Install your distribution's Android udev rules, then replug the cable.</p></details>
+      <details class="q"><summary>The picture appears but touches do nothing</summary><p>Some manufacturers need an extra setting. On Xiaomi phones, turn on <strong>USB debugging (Security settings)</strong>.</p></details>
+      <details class="q"><summary>The picture lags during fast motion</summary><p>Stay on USB if you can, and set Resolution to 1600p and Frame rate to 60 FPS in <a href="#settings">Settings</a>. Video is decoded on the CPU for now.</p></details>
+      <details class="q"><summary>"Arrange windows" does nothing on Linux</summary><p>Wayland doesn't let apps position their own windows, so you'll need to move them yourself.</p></details>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <ul>
+        <li>Video and input travel only between your phone and your computer. There's no account, and OpenVysor runs no servers.</li>
+        <li><strong>Clipboard sync</strong> shares text copied on either side, including passwords. Leave it off if you'd rather not.</li>
+        <li>Phone screens can show private information. Take care when you share or record yours.</li>
+      </ul>
+    </section>
+
+    <section id="status">
+      <h2>What is tested</h2>
+      <p>Testing so far has used one phone (Nothing A059, Android 16).</p>
+      <div class="table-box"><table>
+        <tr><th>Platform</th><th>Builds and unit tests</th><th>App opens</th><th>Mirrors a real phone</th></tr>
+        <tr><td>Windows x64</td><td>Yes</td><td>Yes</td><td>Yes, for app windows</td></tr>
+        <tr><td>Linux x64</td><td>Yes</td><td>Yes, on a virtual display</td><td>Not yet</td></tr>
+        <tr><td>macOS</td><td>Yes, on GitHub Actions</td><td>Not yet</td><td>Not yet</td></tr>
+      </table></div>
+      <p><strong>Confirmed on the phone:</strong> live video of an app in its own window, tapping with the mouse, the window toolbar and full screen, and a clean exit.</p>
+      <p><strong>Written, still being tested:</strong> whole-phone mirroring, dragging, scrolling, typing, rotation, automatic reconnection, clipboard sync, drag and drop, Wi-Fi pairing, phone sound and recording.</p>
+      <p><strong>Not done yet:</strong> hardware video decoding, an installer, code signing, sound in recordings and end-to-end latency measurements.</p>
+    </section>
+
+    <section id="architecture">
+      <h2>Architecture</h2>
+      <p>OpenVysor is one Rust program, drawn with egui and OpenGL. ADB and scrcpy-server are separate programs that it runs.</p>
+      <div class="table-box"><table>
+        <tr><th>Stage</th><th>What happens</th></tr>
+        <tr><td>Start</td><td>The embedded scrcpy-server is pushed to the phone once per app run, and started through <code>adb shell</code>.</td></tr>
+        <tr><td>Transport</td><td>An ADB tunnel carries separate sockets for video, audio and control.</td></tr>
+        <tr><td>Decode</td><td>H.264 is decoded by the Windows decoder, or by OpenH264 on macOS and Linux.</td></tr>
+        <tr><td>Display</td><td>When frames queue up, only the newest is converted and drawn, so the picture stays live.</td></tr>
+        <tr><td>Input</td><td>Mouse and keyboard events become scrcpy control messages.</td></tr>
+        <tr><td>Clean-up</td><td>Child processes are tied to the app's lifetime, so nothing is left running even after a crash.</td></tr>
+      </table></div>
+    </section>
+
+    <section id="build">
+      <h2>Build from source</h2>
+      <p>Install <a href="https://rustup.rs">Rust</a>. On Linux, you also need <code>libasound2-dev</code>, <code>nasm</code> and <code>pkg-config</code>.</p>
+      <pre class="term"><code>git clone https://github.com/SahinurDEV/OpenVysor.git
+cd OpenVysor/native
+cargo build --release</code></pre>
+      <p>Run the tests with <code>cargo test</code>. Tests that need a real phone are skipped unless you ask for them:</p>
+      <pre class="term"><code>cargo test --release --test real_device -- --ignored --nocapture</code></pre>
+    </section>
+
+    <section id="license">
+      <h2>License</h2>
+      <p>OpenVysor is released under the <a href="LICENSE.txt">Apache License 2.0</a> (<a href="NOTICE.txt">notice</a>). It includes <a href="https://github.com/Genymobile/scrcpy">scrcpy-server</a> (<a href="scrcpy-LICENSE.txt">license</a>). It's an independent project, not affiliated with or endorsed by the makers of Vysor.</p>
+    </section>
+  </main>
+
+  <aside class="toc">
+    <h5>Quick start</h5>
+    <p>Install ADB, turn on USB debugging, plug in the phone and tap Allow.</p>
+    <a class="btn small primary" href="#install">Install now</a>
+  </aside>
+</div>
+</body>
+</html>

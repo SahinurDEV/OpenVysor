@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenVysor</title>
+<meta name="description" content="Free, open-source Android screen mirroring and control for Windows 10 and 11.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233ddc97'/%3E%3Crect x='10' y='5' width='12' height='22' rx='3' fill='none' stroke='%230e1114' stroke-width='2'/%3E%3Cpath d='M14 12.5v7l5.5-3.5z' fill='%230e1114'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f7; --card: #ffffff; --muted: #ecedf0; --text: #15191e; --soft: #5a6470;
+  --line: #dfe2e7; --accent: #0c8f6f; --on-accent: #ffffff; --warn: #a86400;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1114; --card: #171c21; --muted: #20262c; --text: #f1f3f5; --soft: #a0a9b4;
+    --line: #2a3138; --accent: #3ddc97; --on-accent: #08120d; --warn: #f0b35a;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "Segoe UI", system-ui, -apple-system, sans-serif; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+a { color: var(--accent); }
+header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 20px; padding-bottom: 20px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; color: var(--text); text-decoration: none; }
+.brand svg { width: 32px; height: 32px; }
+nav { display: flex; gap: 20px; font-size: 14px; flex-wrap: wrap; }
+nav a { color: var(--soft); text-decoration: none; }
+nav a:hover { color: var(--text); }
+.hero { padding: 56px 0 40px; }
+h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; max-width: 14em; font-weight: 600; }
+.lead { font-size: 19px; color: var(--soft); max-width: 36em; margin: 0 0 28px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn { display: inline-block; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 15px; text-decoration: none; background: var(--muted); color: var(--text); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.shot { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(0, 0, 0, .14); }
+section { padding: 44px 0; border-top: 1px solid var(--line); }
+.hero + .shot-wrap { padding-bottom: 56px; }
+h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 8px; }
+h3 { font-size: 17px; font-weight: 600; margin: 28px 0 8px; }
+.sub { color: var(--soft); margin: 0 0 24px; }
+ol, ul { padding-left: 22px; margin: 8px 0; }
+li { margin: 8px 0; }
+pre, code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 14px; }
+code { background: var(--muted); padding: 2px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 10px 0; }
+pre code { background: none; padding: 0; overflow-wrap: normal; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.card h3 { margin-top: 0; }
+a.card { color: var(--soft); text-decoration: none; font-size: 15px; }
+a.card strong { color: var(--text); font-size: 16px; }
+a.card:hover { border-color: var(--accent); }
+.card ul { padding-left: 18px; font-size: 15px; }
+.ok { color: var(--accent); }
+.wait { color: var(--warn); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+td { padding: 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; padding-right: 24px; }
+dt { font-weight: 600; margin-top: 16px; }
+dd { margin: 2px 0 0; color: var(--soft); }
+footer { border-top: 1px solid var(--line); padding: 28px 0 40px; font-size: 14px; color: var(--soft); }
+footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#3ddc97"/><rect x="10" y="5" width="12" height="22" rx="3" fill="none" stroke="#0e1114" stroke-width="2"/><path d="M14 12.5v7l5.5-3.5z" fill="#0e1114"/></svg>
+      OpenVysor
+    </a>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#connect">Connect</a>
+      <a href="#use">Use</a>
+      <a href="#status">Status</a>
+      <a href="#docs">Docs</a>
+      <a href="https://github.com/SahinurDEV/OpenVysor/tree/native-rust-app">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Your Android phone, in a window on your PC.</h1>
+    <p class="lead">OpenVysor mirrors and controls an Android phone on Windows 10 and 11. It is one small native app, free and open source, and still in early development.</p>
+    <div class="actions">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="#status">What works today</a>
+    </div>
+  </div>
+  <div class="shot-wrap">
+    <img class="shot" src="screenshot.png" width="1040" height="680" alt="The OpenVysor Apps page: a sidebar and a searchable grid of sample apps.">
+  </div>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="sub">There is no prebuilt download yet, so you build the app once from source. You need Windows 10 or 11 x64.</p>
+    <ol>
+      <li>Install ADB:
+        <pre><code>winget install Google.PlatformTools</code></pre>
+      </li>
+      <li>Install <a href="https://rustup.rs">Rust</a> and <a href="https://git-scm.com/download/win">Git</a>. Choose the default MSVC option in the Rust installer, and let it add the Visual Studio C++ build tools if it asks.</li>
+      <li>Download and build OpenVysor:
+        <pre><code>git clone -b native-rust-app https://github.com/SahinurDEV/OpenVysor.git
+cd OpenVysor\native
+cargo build --release</code></pre>
+      </li>
+      <li>Run <code>target\release\openvysor-native.exe</code>. It is a single portable file, so you can copy it anywhere.</li>
+    </ol>
+  </section>
+
+  <section id="connect">
+    <h2>Connect a phone</h2>
+    <p class="sub">USB is the simplest way to start.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>With a USB cable</h3>
+        <ol>
+          <li>On the phone, open Developer options and turn on <strong>USB debugging</strong>.</li>
+          <li>Connect a USB data cable and tap <strong>Allow</strong> on the phone.</li>
+          <li>In OpenVysor, choose <strong>Mirror screen</strong> on the Devices page.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Over Wi-Fi <span class="wait">(in testing)</span></h3>
+        <ol>
+          <li>Put the phone and PC on the same Wi-Fi.</li>
+          <li>Choose <strong>Connect over Wi-Fi</strong> in OpenVysor.</li>
+          <li>On the phone, open Developer options, then <strong>Wireless debugging</strong>, and scan the QR code. A pairing code or IP address also works.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="use">
+    <h2>Use it</h2>
+    <p class="sub">Every mirror opens as its own phone-shaped window, showing only the screen.</p>
+    <table>
+      <tr><td><strong>Mirror screen</strong></td><td>Shows the whole phone in one window.</td></tr>
+      <tr><td><strong>Open an app</strong></td><td>Opens one app in its own window. Open several and arrange them side by side.</td></tr>
+      <tr><td><code>Alt</code> + <code>←</code> / <code>→</code></td><td>Switches between phone windows.</td></tr>
+      <tr><td><code>F11</code></td><td>Turns full screen on or off.</td></tr>
+      <tr><td>Drop a file</td><td>An APK installs on the phone; any other file is sent to it.</td></tr>
+      <tr><td><strong>Settings</strong></td><td>Theme, resolution, quality, frame rate, phone sound and clipboard sync.</td></tr>
+    </table>
+    <h3>Troubleshooting</h3>
+    <dl>
+      <dt>ADB is not found</dt>
+      <dd>Install it with the winget command above and restart OpenVysor, or set <code>OPENVYSOR_ADB</code> to the full path of <code>adb.exe</code>.</dd>
+      <dt>The phone is not listed</dt>
+      <dd>Use a data cable rather than a charge-only cable, and check the phone for an Allow prompt.</dd>
+      <dt>The picture appears but touches do nothing</dt>
+      <dd>Some manufacturers need an extra setting. On Xiaomi phones, turn on <strong>USB debugging (Security settings)</strong>.</dd>
+    </dl>
+  </section>
+
+  <section id="status">
+    <h2>What works today</h2>
+    <p class="sub">Only features tried on a real phone are listed as tested. Testing so far used one phone running Android 16.</p>
+    <div class="grid">
+      <div class="card">
+        <h3 class="ok">Tested on a real phone</h3>
+        <ul>
+          <li>Live video of an app in its own window</li>
+          <li>Tapping on the phone with the mouse</li>
+          <li>Phone-shaped windows, toolbar and full screen</li>
+          <li>Clean exit with nothing left running</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="wait">Written, still being tested</h3>
+        <ul>
+          <li>Whole-phone mirroring</li>
+          <li>Dragging, scrolling, typing and rotation</li>
+          <li>Reconnecting automatically</li>
+          <li>Clipboard sync and drag and drop</li>
+          <li>Wi-Fi pairing and phone sound on the PC</li>
+          <li>Recording to MP4</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Not done yet</h3>
+        <ul>
+          <li>Prebuilt download or installer</li>
+          <li>Hardware video decoding (it uses the CPU)</li>
+          <li>Sound in recordings</li>
+          <li>Latency measurements</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="docs">
+    <h2>Docs</h2>
+    <p class="sub">The full project documents are on GitHub.</p>
+    <div class="grid">
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/FEATURE_STATUS.md"><strong>Feature status</strong><br>Exactly what has been verified.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/WINDOWS_SETUP.md"><strong>Windows setup</strong><br>ADB lookup and building details.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/ARCHITECTURE.md"><strong>Architecture</strong><br>How the pieces fit together.</a>
+      <a class="card" href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/docs/TESTING.md"><strong>Testing</strong><br>How features are tested.</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Licensed under the <a href="https://github.com/SahinurDEV/OpenVysor/blob/native-rust-app/LICENSE">Apache License 2.0</a>. Uses <a href="https://github.com/Genymobile/scrcpy">scrcpy-server</a> for capture and input.</p>
+    <p>OpenVysor is an independent project and is not affiliated with or endorsed by the makers of Vysor.</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -193,18 +193,12 @@ pub fn button(ui: &mut Ui, kind: ButtonKind, label: &str, enabled: bool) -> Resp
     let sense = if enabled { Sense::click() } else { Sense::hover() };
     let (rect, response) = ui.allocate_exact_size(size, sense);
     if ui.is_rect_visible(rect) {
-        let hovered = enabled && response.hovered();
+        let hover = ui.ctx().animate_bool_responsive(response.id, enabled && response.hovered());
         let (fill, text, stroke) = match kind {
-            ButtonKind::Primary => {
-                (if hovered { colors.primary_hover } else { colors.primary }, colors.on_primary, Stroke::NONE)
-            }
-            ButtonKind::Secondary => (
-                if hovered { colors.hover } else { colors.muted },
-                colors.foreground,
-                Stroke::NONE,
-            ),
+            ButtonKind::Primary => (colors.primary.lerp_to_gamma(colors.primary_hover, hover), colors.on_primary, Stroke::NONE),
+            ButtonKind::Secondary => (colors.muted.lerp_to_gamma(colors.hover, hover), colors.foreground, Stroke::NONE),
             ButtonKind::Quiet => (
-                if hovered { colors.muted } else { Color32::TRANSPARENT },
+                Color32::TRANSPARENT.lerp_to_gamma(colors.muted, hover),
                 colors.foreground,
                 Stroke::new(1.0, colors.border),
             ),

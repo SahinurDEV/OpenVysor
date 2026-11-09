@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1
+
+### Added
+
+- One-click ADB setup on Windows and macOS. It downloads a fixed version of Google's
+  platform-tools and checks its SHA-256 before unpacking.
+- Smooth, Balanced and Sharp quality presets.
+- An "Open windows" list on the Devices page, and an "Open" badge on running apps.
+- Ctrl+1, Ctrl+2 and Ctrl+3 to switch pages. In app search, Enter opens the first result and
+  Esc clears the search.
+
+### Changed
+
+- Buttons and app tiles animate on hover.
+
 ## 0.3.0
 
 ### Added

@@ -128,7 +128,8 @@ fn icon_button(ui: &mut Ui, icon: Icon, tip: &str, color: Option<Color32>, enabl
     let sense = if enabled { Sense::click() } else { Sense::hover() };
     let (rect, response) = ui.allocate_exact_size(vec2(26.0, 26.0), sense);
     if enabled && response.hovered() {
-        ui.painter().rect_filled(rect, 5.0, Color32::from_white_alpha(28));
+        let fill = if matches!(icon, Icon::Close) { RECORD_COLOR } else { Color32::from_white_alpha(28) };
+        ui.painter().rect_filled(rect, 5.0, fill);
     }
     let tint = if enabled { color.unwrap_or(Color32::from_gray(225)) } else { Color32::from_gray(85) };
     paint_icon(ui.painter(), icon, rect.center(), tint);
@@ -214,6 +215,19 @@ impl Phone {
 
     pub fn serial(&self) -> &str {
         &self.serial
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    /// A short state for lists, and whether the picture is live.
+    pub fn status_text(&self) -> (&'static str, bool) {
+        match self.state.lock().unwrap().status {
+            Status::Starting => ("Connecting", false),
+            Status::Streaming => ("Live", true),
+            Status::Ended => ("Disconnected", false),
+        }
     }
 
     pub fn viewport_builder(&self) -> ViewportBuilder {
@@ -334,7 +348,7 @@ impl Phone {
         }
     }
 
-    fn close(self: &Arc<Self>) {
+    pub fn close(self: &Arc<Self>) {
         self.state.lock().unwrap().closed = true;
         self.core.forget_phone(self.id);
         let phone = self.clone();
@@ -576,6 +590,8 @@ impl Phone {
                 }
             } else {
                 ui.spinner();
+                ui.add_space(6.0);
+                ui.colored_label(Color32::from_gray(170), format!("Connecting to {}…", self.title));
             }
         });
     }

@@ -22,6 +22,8 @@ pub enum AppError {
     Protocol(String),
     #[error("Invalid input: {0}")]
     Invalid(String),
+    #[error("{0}")]
+    AdbSetup(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
@@ -39,6 +41,7 @@ impl AppError {
             AppError::ServerStart(_) => "server_start",
             AppError::Protocol(_) => "protocol",
             AppError::Invalid(_) => "invalid",
+            AppError::AdbSetup(_) => "adb_setup",
             AppError::Io(_) => "io",
         }
     }

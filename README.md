@@ -70,7 +70,8 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
 ## Quick start
 
-You need Android's `adb` tool and a phone with **USB debugging** turned on.
+You need a phone with **USB debugging** turned on. On Windows and macOS, the app can install
+Android's `adb` tool for you with one click. To install it yourself instead:
 
 | Computer | Install adb |
 | --- | --- |
@@ -83,8 +84,9 @@ You need Android's `adb` tool and a phone with **USB debugging** turned on.
    [Releases](https://github.com/SahinurDEV/OpenVysor/releases), which keeps every version.
 2. Open OpenVysor. See [install notes](docs/PLATFORM_SETUP.md) for the security prompts on
    unsigned builds.
-3. Connect the phone with a USB data cable and tap **Allow** on the phone.
-4. Choose **Mirror screen** or **Open an app**.
+3. If the app asks, choose **Install ADB**.
+4. Connect the phone with a USB data cable and tap **Allow** on the phone.
+5. Choose **Mirror screen** or **Open an app**.
 
 ## Controls
 

@@ -3,17 +3,21 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use eframe::egui::{
-    self, Align, CentralPanel, Color32, ComboBox, Context, CursorIcon, FontId, Frame, Label, Layout, Margin, Panel,
-    Rect, RichText, ScrollArea, Sense, Stroke, StrokeKind, TextEdit, Theme, Ui, Vec2, pos2, vec2,
+    self, Align, CentralPanel, Color32, ComboBox, Context, CursorIcon, FontId, Frame, Key, Label, Layout, Margin, Modifiers,
+    Panel, Rect, RichText, ScrollArea, Sense, Stroke, StrokeKind, TextEdit, Theme, Ui, Vec2, ViewportCommand, pos2, vec2,
 };
 use qrcode::{Color, QrCode};
 
+#[cfg(debug_assertions)]
+use crate::adb::device::DeviceDetails;
 use crate::adb::device::{ConnectionType, Device, DeviceState};
+use crate::adb::setup;
 use crate::adb::wireless;
 use crate::mirroring::apps::AppInfo;
+use crate::mirroring::session::MirrorOptions;
 use crate::state::{Core, Settings};
 use crate::theme::{self, ButtonKind, Glyph, Palette, palette, semibold};
 
@@ -24,6 +28,35 @@ const TILE_HEIGHT: f32 = 64.0;
 const SETTINGS_WIDTH: f32 = 760.0;
 const QR_SIDE: f32 = 208.0;
 const QR_POLL: Duration = Duration::from_millis(1500);
+const COPIED_LABEL_TIME: Duration = Duration::from_secs(2);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Quality {
+    Smooth,
+    Balanced,
+    Sharp,
+    Custom,
+}
+
+/// Longest side, bit rate and frame rate for each one-click choice.
+const QUALITY_PRESETS: [(Quality, u32, u32, u32); 3] = [
+    (Quality::Smooth, 1280, 4_000_000, 60),
+    (Quality::Balanced, 1600, 8_000_000, 60),
+    (Quality::Sharp, 0, 16_000_000, 60),
+];
+
+fn quality_of(options: &MirrorOptions) -> Quality {
+    QUALITY_PRESETS
+        .iter()
+        .find(|(_, size, rate, fps)| (*size, *rate, *fps) == (options.max_size, options.bit_rate, options.max_fps))
+        .map_or(Quality::Custom, |(quality, ..)| *quality)
+}
+
+fn apply_quality(options: &mut MirrorOptions, quality: Quality) {
+    if let Some((_, size, rate, fps)) = QUALITY_PRESETS.iter().find(|(preset, ..)| *preset == quality) {
+        (options.max_size, options.bit_rate, options.max_fps) = (*size, *rate, *fps);
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Page {
@@ -142,6 +175,9 @@ pub struct App {
     selected_serial: Option<String>,
     search: String,
     show_system_apps: bool,
+    focus_search: bool,
+    copied_at: Option<Instant>,
+    adb_setup: Arc<Mutex<AdbSetup>>,
     package_to_open: Option<String>,
     #[cfg(debug_assertions)]
     preview: String,
@@ -175,6 +211,16 @@ const NO_PERMISSION_HELP: &str = if cfg!(windows) {
 } else {
     "This computer could not open the phone. Replug the cable."
 };
+
+const ADB_TERMS_URL: &str = "https://developer.android.com/studio/terms";
+
+#[derive(Clone, Default)]
+enum AdbSetup {
+    #[default]
+    Idle,
+    Running,
+    Failed(String),
+}
 
 const ADB_INSTALL_COMMAND: &str = if cfg!(windows) {
     "winget install Google.PlatformTools"
@@ -273,25 +319,33 @@ impl App {
             selected_serial: None,
             search: String::new(),
             show_system_apps: false,
+            focus_search: false,
+            copied_at: None,
+            adb_setup: Arc::default(),
             package_to_open,
             #[cfg(debug_assertions)]
             preview: std::env::var("OPENVYSOR_PREVIEW").unwrap_or_default(),
         };
         #[cfg(debug_assertions)]
-        app.apply_preview();
+        app.apply_preview(&context.egui_ctx);
         app
     }
 
     /// Debug builds can open a given screen with sample data, so screenshots
     /// of the design never show what is really on the phone.
     #[cfg(debug_assertions)]
-    fn apply_preview(&mut self) {
+    fn apply_preview(&mut self, ctx: &Context) {
         match self.preview.as_str() {
             "apps" => self.page = Page::Apps,
             "settings" => self.page = Page::Settings,
             "wireless" => self.show_wireless = true,
             "light" => self.core.settings.lock().unwrap().dark = false,
             "dark" => self.core.settings.lock().unwrap().dark = true,
+            "adb-setup" => self.start_adb_setup(ctx),
+            "windows" => {
+                self.core.open_phone(ctx, "sample", None, "Sample phone".to_string());
+                self.core.open_phone(ctx, "sample", Some("sample.Notes".to_string()), "Notes".to_string());
+            }
             _ => {}
         }
     }
@@ -312,6 +366,11 @@ impl App {
         if self.preview == "empty" {
             return Vec::new();
         }
+        #[cfg(debug_assertions)]
+        if self.preview == "apps" || self.preview == "windows" {
+            let details = DeviceDetails { model: Some("Sample phone".to_string()), android_version: Some("16".to_string()), resolution: Some("1080 x 2400".to_string()), battery: Some(82), ..DeviceDetails::default() };
+            return vec![Device { serial: "sample".to_string(), state: DeviceState::Online, connection: ConnectionType::Usb, model: None, details: Some(details) }];
+        }
         self.core.registry.devices()
     }
 
@@ -327,11 +386,17 @@ impl App {
         }
     }
 
-    fn nav_item(&mut self, ui: &mut Ui, page: Page, glyph: Glyph, label: &str, colors: &Palette) {
+    fn go_to(&mut self, page: Page) {
+        self.focus_search = page == Page::Apps;
+        self.page = page;
+    }
+
+    fn nav_item(&mut self, ui: &mut Ui, page: Page, glyph: Glyph, label: &str, shortcut: &str, colors: &Palette) {
         let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), 40.0), Sense::click());
         let active = self.page == page;
-        if active || response.hovered() {
-            ui.painter().rect_filled(rect, 8.0, if active { colors.muted } else { colors.muted.gamma_multiply(0.5) });
+        let hover = ui.ctx().animate_bool_responsive(response.id, response.hovered());
+        if active || hover > 0.0 {
+            ui.painter().rect_filled(rect, 8.0, if active { colors.muted } else { colors.muted.gamma_multiply(0.5 * hover) });
         }
         if active {
             let bar = Rect::from_center_size(pos2(rect.left() + 1.5, rect.center().y), vec2(3.0, 18.0));
@@ -341,8 +406,8 @@ impl App {
         theme::glyph(ui.painter(), glyph, pos2(rect.left() + 24.0, rect.center().y), 18.0, tint);
         let font = if active { semibold(14.0) } else { FontId::proportional(14.0) };
         ui.painter().text(pos2(rect.left() + 44.0, rect.center().y), egui::Align2::LEFT_CENTER, label, font, tint);
-        if response.on_hover_cursor(CursorIcon::PointingHand).clicked() {
-            self.page = page;
+        if response.on_hover_cursor(CursorIcon::PointingHand).on_hover_text(shortcut).clicked() {
+            self.go_to(page);
         }
     }
 
@@ -357,9 +422,9 @@ impl App {
         });
         ui.add_space(20.0);
         ui.spacing_mut().item_spacing.y = 4.0;
-        self.nav_item(ui, Page::Devices, Glyph::Phone, "Devices", colors);
-        self.nav_item(ui, Page::Apps, Glyph::Grid, "Apps", colors);
-        self.nav_item(ui, Page::Settings, Glyph::Gear, "Settings", colors);
+        self.nav_item(ui, Page::Devices, Glyph::Phone, "Devices", "Ctrl+1", colors);
+        self.nav_item(ui, Page::Apps, Glyph::Grid, "Apps", "Ctrl+2", colors);
+        self.nav_item(ui, Page::Settings, Glyph::Gear, "Settings", "Ctrl+3", colors);
 
         let status = self.core.registry.status();
         let windows = self.core.phones().len();
@@ -401,6 +466,7 @@ impl App {
             self.wireless_panel(ui);
             ui.add_space(12.0);
         }
+        self.open_windows(ui);
         if !status.available {
             self.adb_missing(ui);
         } else if devices.is_empty() {
@@ -419,14 +485,102 @@ impl App {
         }
     }
 
-    fn adb_missing(&self, ui: &mut Ui) {
+    fn open_windows(&self, ui: &mut Ui) {
+        let phones = self.core.phones();
+        if phones.is_empty() {
+            return;
+        }
+        let colors = palette(ui);
+        section_title(ui, "Open windows");
         theme::card(ui, |ui| {
-            ui.label(RichText::new("ADB was not found").font(semibold(16.0)));
-            ui.label("OpenVysor uses Android's ADB tool. Install it from a terminal, then restart OpenVysor:");
+            for (index, phone) in phones.iter().enumerate() {
+                if index > 0 {
+                    row_divider(ui);
+                }
+                ui.allocate_ui_with_layout(vec2(ui.available_width(), 40.0), Layout::right_to_left(Align::Center), |ui| {
+                    if theme::button(ui, ButtonKind::Quiet, "Close", true).clicked() {
+                        phone.close();
+                    }
+                    if theme::button(ui, ButtonKind::Secondary, "Show", true).clicked() {
+                        ui.ctx().send_viewport_cmd_to(phone.id, ViewportCommand::Focus);
+                    }
+                    let (label, live) = phone.status_text();
+                    theme::pill(ui, label, if live { colors.success } else { colors.warning });
+                    ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                        let (rect, _) = ui.allocate_exact_size(Vec2::splat(32.0), Sense::hover());
+                        theme::avatar(ui.painter(), rect.center(), 15.0, phone.title());
+                        ui.add(Label::new(RichText::new(phone.title()).font(semibold(14.0))).truncate());
+                    });
+                });
+            }
+        });
+        ui.add_space(14.0);
+    }
+
+    /// On success the state stays Running until the device watcher finds adb.
+    fn start_adb_setup(&self, ctx: &Context) {
+        *self.adb_setup.lock().unwrap() = AdbSetup::Running;
+        let (state, ctx) = (self.adb_setup.clone(), ctx.clone());
+        thread::spawn(move || {
+            if let Err(error) = setup::install() {
+                log::warn!("adb setup: {error}");
+                *state.lock().unwrap() = AdbSetup::Failed(error.to_string());
+            }
+            ctx.request_repaint();
+        });
+    }
+
+    fn adb_setup_controls(&self, ui: &mut Ui, state: &AdbSetup) {
+        ui.label("OpenVysor needs Android's ADB tool to talk to your phone. This downloads it from Google, under 20 MB.");
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 4.0;
+            ui.weak("By installing, you accept Google's");
+            ui.hyperlink_to("Android SDK terms", ADB_TERMS_URL);
+        });
+        ui.add_space(8.0);
+        if matches!(state, AdbSetup::Running) {
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.label("Downloading and checking ADB…");
+            });
+            return;
+        }
+        if let AdbSetup::Failed(message) = state {
+            ui.colored_label(palette(ui).danger, message);
+            ui.add_space(4.0);
+        }
+        let label = if matches!(state, AdbSetup::Failed(_)) { "Try again" } else { "Install ADB" };
+        if theme::button(ui, ButtonKind::Primary, label, true).clicked() {
+            self.start_adb_setup(ui.ctx());
+        }
+    }
+
+    fn adb_missing(&mut self, ui: &mut Ui) {
+        let copied = self.copied_at.is_some_and(|at| at.elapsed() < COPIED_LABEL_TIME);
+        let state = self.adb_setup.lock().unwrap().clone();
+        theme::card(ui, |ui| {
+            ui.label(RichText::new("Finish setting up").font(semibold(16.0)));
+            if setup::SUPPORTED {
+                self.adb_setup_controls(ui, &state);
+                if !matches!(state, AdbSetup::Failed(_)) {
+                    return;
+                }
+                ui.add_space(10.0);
+            }
+            ui.label("You can also install it from a terminal, then restart OpenVysor:");
             ui.add_space(4.0);
             Frame::NONE.fill(palette(ui).muted).corner_radius(8).inner_margin(Margin::same(10)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
-                ui.add(Label::new(RichText::new(ADB_INSTALL_COMMAND).monospace()));
+                ui.horizontal(|ui| {
+                    ui.add(Label::new(RichText::new(ADB_INSTALL_COMMAND).monospace()));
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if theme::button(ui, ButtonKind::Quiet, if copied { "Copied" } else { "Copy" }, true).clicked() {
+                            ui.ctx().copy_text(ADB_INSTALL_COMMAND.to_string());
+                            self.copied_at = Some(Instant::now());
+                            ui.ctx().request_repaint_after(COPIED_LABEL_TIME);
+                        }
+                    });
+                });
             });
         });
     }
@@ -489,12 +643,13 @@ impl App {
             }
             ui.add_space(6.0);
             ui.horizontal(|ui| {
-                if theme::button(ui, ButtonKind::Primary, "Mirror screen", online).clicked() {
+                let open = self.core.phones().iter().any(|phone| phone.shows(&device.serial, None));
+                if theme::button(ui, ButtonKind::Primary, if open { "Show window" } else { "Mirror screen" }, online).clicked() {
                     self.core.open_phone(ui.ctx(), &device.serial, None, device_name(device));
                 }
                 if theme::button(ui, ButtonKind::Secondary, "Open an app", online).clicked() {
                     self.selected_serial = Some(device.serial.clone());
-                    self.page = Page::Apps;
+                    self.go_to(Page::Apps);
                 }
                 if device.connection == ConnectionType::Wireless
                     && theme::button(ui, ButtonKind::Quiet, "Disconnect", true).clicked()
@@ -681,12 +836,21 @@ impl App {
             ui.colored_label(colors.danger, error);
         }
 
+        let mut open_first = false;
         ui.horizontal(|ui| {
             let edit = TextEdit::singleline(&mut self.search)
-                .hint_text("Search apps")
+                .hint_text("Search apps, then press Enter")
                 .desired_width(300.0)
                 .margin(Margin { left: 34, right: 10, top: 9, bottom: 9 });
             let response = ui.add(edit);
+            if std::mem::take(&mut self.focus_search) {
+                response.request_focus();
+            }
+            if response.lost_focus() && ui.input(|input| input.key_pressed(Key::Escape)) {
+                self.search.clear();
+                response.request_focus();
+            }
+            open_first = response.lost_focus() && ui.input(|input| input.key_pressed(Key::Enter));
             theme::glyph(ui.painter(), Glyph::Search, pos2(response.rect.left() + 18.0, response.rect.center().y), 16.0, colors.secondary);
             ui.add_space(12.0);
             theme::switch(ui, &mut self.show_system_apps);
@@ -712,13 +876,15 @@ impl App {
         let columns = columns_for(width, TILE_MIN_WIDTH, GAP);
         let tile_width = (width - GAP * (columns - 1) as f32) / columns as f32;
         let rows = matching.len().div_ceil(columns);
-        let mut chosen = None;
+        let mut chosen = open_first.then(|| matching[0].clone());
+        let phones = self.core.phones();
         ui.spacing_mut().item_spacing = vec2(GAP, GAP);
         ScrollArea::vertical().auto_shrink(false).show_rows(ui, TILE_HEIGHT, rows, |ui, range| {
             for row in range {
                 ui.horizontal(|ui| {
                     for app in matching.iter().skip(row * columns).take(columns) {
-                        if app_tile(ui, app, tile_width, colors) {
+                        let open = phones.iter().any(|phone| phone.shows(&serial, Some(&app.package)));
+                        if app_tile(ui, app, tile_width, open, colors) {
                             chosen = Some((*app).clone());
                         }
                     }
@@ -774,15 +940,21 @@ impl App {
     }
 }
 
-fn app_tile(ui: &mut Ui, app: &AppInfo, width: f32, colors: &Palette) -> bool {
+fn app_tile(ui: &mut Ui, app: &AppInfo, width: f32, open: bool, colors: &Palette) -> bool {
     let (rect, response) = ui.allocate_exact_size(vec2(width, TILE_HEIGHT), Sense::click());
     if ui.is_rect_visible(rect) {
-        let hovered = response.hovered();
-        let border = if hovered { colors.primary } else { colors.border };
-        ui.painter().rect(rect, 10.0, colors.card, Stroke::new(1.0, border), StrokeKind::Inside);
+        let hover = ui.ctx().animate_bool_responsive(response.id, response.hovered());
+        let border = colors.border.lerp_to_gamma(colors.primary, hover);
+        let fill = colors.card.lerp_to_gamma(colors.muted, hover);
+        ui.painter().rect(rect, 10.0, fill, Stroke::new(1.0, border), StrokeKind::Inside);
         theme::avatar(ui.painter(), pos2(rect.left() + 34.0, rect.center().y), 20.0, &app.name);
         let text_left = rect.left() + 66.0;
-        let text_width = rect.right() - text_left - 12.0;
+        let text_width = rect.right() - text_left - if open { 62.0 } else { 12.0 };
+        if open {
+            let dot = pos2(rect.right() - 50.0, rect.center().y);
+            ui.painter().circle_filled(dot, 3.5, colors.success);
+            ui.painter().text(dot + vec2(8.0, 0.0), egui::Align2::LEFT_CENTER, "Open", FontId::proportional(12.0), colors.success);
+        }
         let job = theme::one_line(&app.name, semibold(14.0), colors.foreground, text_width);
         let galley = ui.painter().layout_job(job);
         if app.system {
@@ -806,6 +978,14 @@ fn section_settings(ui: &mut Ui, settings: &mut Settings, adb_version: Option<St
 
     section_title(ui, "Mirroring");
     theme::card(ui, |ui| {
+        setting_row(ui, "Preset", "Pick one, or fine-tune the options below", |ui| {
+            let mut quality = quality_of(&settings.options);
+            let choices = [(Quality::Sharp, "Sharp"), (Quality::Balanced, "Balanced"), (Quality::Smooth, "Smooth")];
+            if theme::segmented(ui, &choices, &mut quality) {
+                apply_quality(&mut settings.options, quality);
+            }
+        });
+        row_divider(ui);
         setting_row(ui, "Resolution", "Lower is smoother on slow connections", |ui| {
             choice_combo(ui, "resolution", &mut settings.options.max_size, &[(0, "Native"), (2400, "2400p"), (1920, "1920p"), (1600, "1600p"), (1280, "1280p"), (1024, "1024p")]);
         });
@@ -843,6 +1023,11 @@ impl eframe::App for App {
         let ctx = ui.ctx().clone();
         ctx.set_theme(if self.core.settings.lock().unwrap().dark { Theme::Dark } else { Theme::Light });
 
+        for (key, page) in [(Key::Num1, Page::Devices), (Key::Num2, Page::Apps), (Key::Num3, Page::Settings)] {
+            if ctx.input_mut(|input| input.consume_key(Modifiers::COMMAND, key)) {
+                self.go_to(page);
+            }
+        }
         self.open_requested_package(&ctx);
         for phone in self.core.phones() {
             let window = phone.clone();
@@ -891,6 +1076,17 @@ mod tests {
         let token = hex_token(4);
         assert_eq!(token.len(), 8);
         assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn presets_are_recognized_and_applied() {
+        let mut options = MirrorOptions::default();
+        assert_eq!(quality_of(&options), Quality::Balanced);
+        apply_quality(&mut options, Quality::Sharp);
+        assert_eq!((options.max_size, options.bit_rate), (0, 16_000_000));
+        assert_eq!(quality_of(&options), Quality::Sharp);
+        options.max_fps = 120;
+        assert_eq!(quality_of(&options), Quality::Custom);
     }
 
     #[test]

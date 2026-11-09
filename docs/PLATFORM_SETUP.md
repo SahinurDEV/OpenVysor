@@ -2,26 +2,30 @@
 
 Download the package for your computer from the [website](https://sahinurdev.github.io/OpenVysor/#install),
 which detects it for you, or from the [Releases page](https://github.com/SahinurDEV/OpenVysor/releases), which keeps every version. Every platform also
-needs Android's `adb` tool and a phone with USB debugging turned on.
+needs a phone with USB debugging turned on, and Android's `adb` tool. On Windows and macOS, the
+app offers an **Install ADB** button that downloads a fixed version from Google and checks it.
 
 Real-device status for each platform is in [FEATURE_STATUS.md](FEATURE_STATUS.md).
 
 ## Windows 10 and 11
 
-1. Install adb: `winget install Google.PlatformTools`
-2. Run `OpenVysor-windows-x64.exe`. It's portable, so keep it anywhere. The `.zip` holds the same app with its license files.
+1. Run `OpenVysor-windows-x64.exe`. It's portable, so keep it anywhere. The `.zip` holds the same app with its license files.
+2. If the app asks, choose **Install ADB**. To install it yourself instead: `winget install Google.PlatformTools`
 
 The app is not signed, so SmartScreen may warn. Choose **More info**, then **Run anyway**.
 
 ## macOS 11 or later
 
-1. Install adb: `brew install android-platform-tools`
-2. Open `OpenVysor-macos-arm64.dmg` (Apple Silicon) or `OpenVysor-macos-x64.dmg` (Intel), and drag `OpenVysor.app` to Applications. A `.zip` of the app is also available.
-3. The app is not notarized, so macOS blocks the first launch. Allow it once with:
+1. Open `OpenVysor-macos-arm64.dmg` (Apple Silicon) or `OpenVysor-macos-x64.dmg` (Intel), and drag `OpenVysor.app` to Applications. A `.zip` of the app is also available.
+2. The app is not notarized, so macOS blocks the first launch. Try opening it once, then go to
+   **System Settings → Privacy & Security** and choose **Open Anyway**. Or run this in Terminal:
 
    ```sh
    xattr -dr com.apple.quarantine /Applications/OpenVysor.app
    ```
+
+3. If the app asks, choose **Install ADB**. To install it yourself instead:
+   `brew install android-platform-tools`
 
 ## Linux x64
 
@@ -54,9 +58,9 @@ Intel Macs makes video decoding faster.
 Set `version` in `native/Cargo.toml`, commit it, then push a matching tag:
 
 ```sh
-git tag v0.3.0
-git push origin v0.3.0
+git tag v0.3.1
+git push origin v0.3.1
 ```
 
 GitHub Actions builds every platform and publishes the release with a `SHA256SUMS.txt`.
-A tag with a suffix, such as `v0.3.0-rc.1`, is published as a pre-release.
+A tag with a suffix, such as `v0.3.1-rc.1`, is published as a pre-release.

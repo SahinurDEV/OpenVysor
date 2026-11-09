@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod connection;
 pub mod device;
+pub mod setup;
 pub mod wireless;
 
 use std::ffi::OsStr;
@@ -181,6 +182,9 @@ fn candidate_paths() -> Vec<PathBuf> {
             paths.push(home.join("Android/Sdk/platform-tools").join(exe));
         }
         paths.extend(["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"].map(|dir| Path::new(dir).join(exe)));
+    }
+    if let Some(folder) = setup::tools_folder() {
+        paths.push(folder.join(exe));
     }
     paths
 }

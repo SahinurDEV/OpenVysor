@@ -52,6 +52,8 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | End-to-end latency | **Not measured** |
 | Hardware video decoding | Not done; decoding runs on the CPU |
 | Installer | Not done; the app is one portable `.exe` |
+| One-click ADB setup | Real download and install verified on Windows, and a failed download recovers. **Not verified on macOS** |
+| Quality presets, open windows list, page shortcuts, search keys | Unit tested and checked in screenshots, **not yet verified with a phone** |
 
 ## Platforms (native app)
 

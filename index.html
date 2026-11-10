@@ -34,7 +34,7 @@
       "softwareVersion": "0.3.1",
       "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
       "screenshot": "https://sahinurdev.github.io/OpenVysor/screenshot.png",
-      "downloadUrl": "https://sahinurdev.github.io/OpenVysor/OpenVysor.exe",
+      "downloadUrl": "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe",
       "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "isAccessibleForFree": true,
       "offers": {
@@ -262,7 +262,7 @@
           <div class="dls">
           <div class="dl" data-key="windows-exe">
             <div><b>Windows x64 (.exe)</b><span class="rec">Recommended for you</span><small>Portable: one file, nothing to install. Windows 10 or 11.</small></div>
-            <a class="btn small" href="OpenVysor.exe" download>Download .exe</a>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe" download>Download .exe</a>
           </div>
           <div class="dl" data-key="windows-zip">
             <div><b>Windows x64 (.zip)</b><span class="rec">Recommended for you</span><small>The same app, with its license files.</small></div>
@@ -270,10 +270,10 @@
           </div>
           </div>
           <ol class="steps">
-            <li>Install ADB from a terminal.<pre class="term"><code>winget install Google.PlatformTools</code></pre></li>
-            <li>Open the app. It isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
+            <li>Open the app and choose <strong>Install ADB</strong> if it asks. It downloads Google's ADB tool and checks it. To install it yourself, download <a href="https://developer.android.com/tools/releases/platform-tools">SDK Platform-Tools</a> and unzip it into <code>%LOCALAPPDATA%\OpenVysor</code>.</li>
+            <li>The app isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
           </ol>
-          <p class="hash">OpenVysor.exe SHA-256 <code>2BB74BAB3E1B1531CFB3ACA9FF88D8C65A8E2B5D3FE2E21C80440A5A26D71380</code></p>
+          <p class="hash">SHA-256 checksums for every file are in <a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/SHA256SUMS.txt">SHA256SUMS.txt</a>.</p>
         </div>
         <div class="panel" role="tabpanel" id="p-mac" aria-labelledby="t-mac" hidden>
           <p class="preview"><span class="badge testing">Preview</span> Builds and passes its tests on macOS, but hasn't been tried on a real Mac with a phone yet.</p>

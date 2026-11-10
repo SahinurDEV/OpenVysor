@@ -150,7 +150,7 @@
   // Finds this computer, so the right download can be offered first.
   const latest = "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/";
   const downloads = {
-    "windows-exe": ["Windows", "OpenVysor.exe", ".exe, portable"],
+    "windows-exe": ["Windows", latest + "OpenVysor-windows-x64.exe", ".exe, portable"],
     "mac-arm-dmg": ["macOS (Apple Silicon)", latest + "OpenVysor-macos-arm64.dmg", ".dmg, preview build"],
     "mac-intel-dmg": ["macOS (Intel)", latest + "OpenVysor-macos-x64.dmg", ".dmg, preview build"],
     "linux-deb": ["Linux", latest + "OpenVysor-linux-x64.deb", ".deb, preview build"],

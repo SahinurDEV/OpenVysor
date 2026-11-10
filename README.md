@@ -17,7 +17,7 @@ One small native Rust app. No account, no cloud, no root.
 [**Documentation**](https://sahinurdev.github.io/OpenVysor/docs.html) ·
 [**Roadmap**](#roadmap)
 
-<img src="docs/images/app.png" width="760" alt="OpenVysor desktop app showing a searchable grid of Android apps, each of which opens in its own window">
+<img src="docs/images/demo.gif" width="860" alt="OpenVysor opening a saved workspace with Calculator and Clock in their own windows, then mirroring a phone live while a calculation is entered">
 
 </div>
 

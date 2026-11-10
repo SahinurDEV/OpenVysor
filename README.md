@@ -45,7 +45,7 @@ One small native Rust app. No account, no cloud, no root.
 | Whole-phone mirroring | 🧪 Written, being tested |
 | Dragging, scrolling, typing and rotation | 🧪 Written, being tested |
 | Automatic reconnection | 🧪 Written, being tested |
-| Wi-Fi pairing by QR code, pairing code or IP address | 🧪 Written, being tested |
+| Wi-Fi by QR code, pairing code, IP address, or one click from USB | 🧪 Written, being tested |
 | Clipboard sync, and drag and drop for APKs and files | 🧪 Written, being tested |
 | Phone sound on your computer | 🧪 Written, being tested |
 | Screenshots and MP4 recording | 🧪 Written, being tested |
@@ -80,7 +80,7 @@ Android's `adb` tool for you with one click. To install it yourself instead:
 
 | Computer | Install adb |
 | --- | --- |
-| Windows | `winget install Google.PlatformTools` |
+| Windows | Download [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) and unzip it into `%LOCALAPPDATA%\OpenVysor` |
 | macOS | `brew install android-platform-tools` |
 | Debian or Ubuntu | `sudo apt install adb android-sdk-platform-tools-common` |
 

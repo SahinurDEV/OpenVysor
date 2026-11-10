@@ -46,6 +46,7 @@ pub fn spawn(mirrors: Arc<MirrorManager>) -> Sender<String> {
             match rx.recv_timeout(POLL_INTERVAL) {
                 Ok(text) => {
                     if mirrors.clipboard_sync_enabled() && tracker.changed(&text) {
+                        mirrors.remember_clipboard(&text);
                         if let Err(error) = clipboard.set_text(text) {
                             log::warn!("could not write the clipboard: {error}");
                         }

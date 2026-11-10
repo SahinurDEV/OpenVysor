@@ -11,10 +11,24 @@
 - A Notifications page, off until turned on. Text is never saved, and an app opens to reply.
 - A tray icon and Ctrl+Shift+O (Cmd+Shift+O on macOS) to bring the app forward. Windows and macOS only.
 - Mirror all, for several phones at once.
+- Use over Wi-Fi: one click moves a USB-connected phone to Wi-Fi with `adb tcpip`, which also
+  works on Android 10 and older.
+- The IP address tab lists phones found on the network, and addresses that worked before.
+  Those addresses are tried again when the app starts, until you choose Disconnect.
 
 ### Changed
 
 - Page shortcuts are now Ctrl+1 to Ctrl+5, to include the two new pages.
+- Pairing with a code now connects as well, without asking for the second port.
+- An IP address without a port uses 5555. Failed Wi-Fi connections explain what to check.
+- On Windows, the manual ADB instructions link to Google's download, because the winget
+  package `Google.PlatformTools` now fails with a 404. The winget manifest no longer depends
+  on it.
+
+### Fixed
+
+- Text copied on the computer before a phone window opened never reached that phone. It is
+  now sent when the window opens.
 
 ## 0.3.1
 

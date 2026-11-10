@@ -10,7 +10,11 @@ Real-device status for each platform is in [FEATURE_STATUS.md](FEATURE_STATUS.md
 ## Windows 10 and 11
 
 1. Run `OpenVysor-windows-x64.exe`. It's portable, so keep it anywhere. The `.zip` holds the same app with its license files.
-2. If the app asks, choose **Install ADB**. To install it yourself instead: `winget install Google.PlatformTools`
+2. If the app asks, choose **Install ADB**. To install it yourself instead, download
+   [SDK Platform-Tools for Windows](https://developer.android.com/tools/releases/platform-tools)
+   and unzip it into `%LOCALAPPDATA%\OpenVysor`, so that `adb.exe` ends up in
+   `%LOCALAPPDATA%\OpenVysor\platform-tools`. The winget package `Google.PlatformTools` currently
+   fails with a 404, because it points at a file Google no longer serves.
 
 The app is not signed, so SmartScreen may warn. Choose **More info**, then **Run anyway**.
 

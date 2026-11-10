@@ -4,12 +4,15 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use eframe::egui::{Context, Pos2, ViewportCommand, ViewportId, pos2};
 use serde::{Deserialize, Serialize};
 
 use crate::adb::connection::{DeviceRegistry, spawn_watcher};
 use crate::adb::device::DeviceState;
+use crate::adb::wireless;
 use crate::clipboard;
 use crate::error::{AppError, Result};
 use crate::input::phone_window_size;
@@ -35,6 +38,8 @@ pub struct Settings {
     pub notifications: bool,
     pub profiles: BTreeMap<String, AppProfile>,
     pub workspaces: Vec<Workspace>,
+    /// Wi-Fi addresses that connected before, newest first, tried again at startup.
+    pub wireless_addresses: Vec<String>,
 }
 
 impl Default for Settings {
@@ -46,8 +51,19 @@ impl Default for Settings {
             notifications: false,
             profiles: BTreeMap::new(),
             workspaces: Vec::new(),
+            wireless_addresses: Vec::new(),
         }
     }
+}
+
+const REMEMBERED_ADDRESSES: usize = 5;
+/// How long the startup reconnect waits for adb to be found.
+const RECONNECT_WAIT: Duration = Duration::from_secs(30);
+
+fn remember_address(addresses: &mut Vec<String>, address: &str) {
+    addresses.retain(|existing| existing != address);
+    addresses.insert(0, address.to_string());
+    addresses.truncate(REMEMBERED_ADDRESSES);
 }
 
 fn app_folder() -> Result<PathBuf> {
@@ -115,7 +131,44 @@ impl Core {
             }
             watcher_ctx.request_repaint();
         });
+        core.reconnect_wireless();
         core
+    }
+
+    /// Tries the remembered Wi-Fi addresses once. Phones that are off the network
+    /// or have a new port simply fail, quietly.
+    fn reconnect_wireless(self: &Arc<Self>) {
+        let addresses = self.settings.lock().unwrap().wireless_addresses.clone();
+        if addresses.is_empty() {
+            return;
+        }
+        let registry = self.registry.clone();
+        thread::spawn(move || {
+            let started = Instant::now();
+            let adb = loop {
+                match registry.adb() {
+                    Ok(adb) => break adb,
+                    Err(_) if started.elapsed() < RECONNECT_WAIT => thread::sleep(Duration::from_millis(500)),
+                    Err(_) => return,
+                }
+            };
+            let connected: Vec<String> = registry.devices().into_iter().map(|device| device.serial).collect();
+            for address in addresses.iter().filter(|address| !connected.contains(address)) {
+                match wireless::connect(&adb, address) {
+                    Ok(_) => log::info!("reconnected to {address}"),
+                    Err(error) => log::info!("could not reconnect to {address}: {error}"),
+                }
+            }
+        });
+    }
+
+    pub fn remember_wireless(&self, address: &str) {
+        self.update_settings(|settings| remember_address(&mut settings.wireless_addresses, address));
+    }
+
+    /// A phone the user disconnected is not reconnected at the next start.
+    pub fn forget_wireless(&self, address: &str) {
+        self.update_settings(|settings| settings.wireless_addresses.retain(|existing| existing != address));
     }
 
     pub fn server_path(&self) -> Result<PathBuf> {
@@ -232,5 +285,15 @@ mod tests {
         assert!(!settings.dark);
         assert!(settings.clipboard_sync);
         assert_eq!(settings.options, MirrorOptions::default());
+        assert!(settings.wireless_addresses.is_empty());
+    }
+
+    #[test]
+    fn remembers_recent_addresses_once_newest_first() {
+        let mut addresses = Vec::new();
+        for address in ["a:1", "b:1", "a:1", "c:1", "d:1", "e:1", "f:1"] {
+            remember_address(&mut addresses, address);
+        }
+        assert_eq!(addresses, ["f:1", "e:1", "d:1", "c:1", "a:1"]);
     }
 }

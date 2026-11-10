@@ -22,7 +22,7 @@ Android 16). See [TESTING.md](TESTING.md) for evidence.
 | New | App list with search | Device verified, 122 apps listed |
 | P1 | Full-screen mode | Written, **not yet verified** |
 | P1 | Several devices at once | Backend supports it; UI shows one session; **not verified** |
-| P1 | Wireless ADB (QR code, pairing code, IP address) | Written, unit tests pass, **not yet verified on a device** |
+| P1 | Wireless ADB (QR code, pairing code with automatic connect, IP address, Use over Wi-Fi from USB, reconnect at startup) | Written, unit tests pass, **not yet verified on a device** |
 | P1 | APK installation by drag and drop | Written, **not yet verified on a device** |
 | P1 | File transfer by drag and drop (to Download) | Written, **not yet verified on a device** |
 | P2 | Resolution, bitrate and FPS controls | Written, **not yet verified on a device** |

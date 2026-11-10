@@ -15,7 +15,7 @@ use qrcode::{Color, QrCode};
 use crate::adb::device::DeviceDetails;
 use crate::adb::device::{ConnectionType, Device, DeviceState};
 use crate::adb::setup;
-use crate::adb::wireless;
+use crate::adb::wireless::{self, MdnsService};
 use crate::mirroring::apps::AppInfo;
 use crate::files_page::FilesPage;
 use crate::notifications_page::NotificationsPage;
@@ -30,6 +30,7 @@ const TILE_HEIGHT: f32 = 64.0;
 const SETTINGS_WIDTH: f32 = 760.0;
 const QR_SIDE: f32 = 208.0;
 const QR_POLL: Duration = Duration::from_millis(1500);
+const DISCOVERY_POLL: Duration = Duration::from_secs(3);
 const COPIED_LABEL_TIME: Duration = Duration::from_secs(2);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -127,6 +128,57 @@ impl Drop for QrPairing {
     }
 }
 
+/// Lists phones on the network while the IP address panel is open.
+struct Discovery {
+    found: Arc<Mutex<Vec<MdnsService>>>,
+    stop: Arc<AtomicBool>,
+}
+
+impl Discovery {
+    fn start(core: &Arc<Core>, ctx: &Context) -> Self {
+        let found = Arc::new(Mutex::new(Vec::new()));
+        let stop = Arc::new(AtomicBool::new(false));
+        let (core, ctx, thread_found, thread_stop) = (core.clone(), ctx.clone(), found.clone(), stop.clone());
+        thread::spawn(move || {
+            while !thread_stop.load(Ordering::Relaxed) {
+                let connected: Vec<String> = core.registry.devices().into_iter().map(|device| device.serial).collect();
+                if let Ok(services) = core.registry.adb().and_then(|adb| wireless::discover(&adb)) {
+                    let services: Vec<MdnsService> = services
+                        .into_iter()
+                        .filter(|entry| !connected.iter().any(|serial| *serial == entry.address || serial.starts_with(&entry.name)))
+                        .collect();
+                    let mut found = thread_found.lock().unwrap();
+                    if *found != services {
+                        *found = services;
+                        ctx.request_repaint();
+                    }
+                }
+                thread::sleep(DISCOVERY_POLL);
+            }
+        });
+        Self { found, stop }
+    }
+}
+
+impl Drop for Discovery {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
+#[derive(Default)]
+struct WifiSwitch {
+    busy: Option<String>,
+    /// The serial it was for, and the outcome.
+    result: Option<(String, Result<String, String>)>,
+}
+
+const CONNECT_HELP: &str = "Check that the phone and this computer are on the same Wi-Fi and that Wireless debugging is on. \
+The port changes each time Wireless debugging is turned on, so use the one shown now.";
+const PAIR_HELP: &str = "Keep the “Pair device with pairing code” box open on the phone, and use the IP address, port and code shown in it.";
+const QR_HELP: &str = "Nothing after scanning? Allow adb through your firewall if asked, or use Pairing code instead. \
+Some networks, such as guest or office Wi-Fi, block this.";
+
 #[derive(Default)]
 struct AppList {
     serial: Option<String>,
@@ -143,10 +195,12 @@ pub struct App {
     show_wireless: bool,
     pair_mode: PairMode,
     qr: Option<QrPairing>,
+    discovery: Option<Discovery>,
     address: String,
     code: String,
     pair_busy: Arc<AtomicBool>,
     pair_result: TaskResult,
+    wifi_switch: Arc<Mutex<WifiSwitch>>,
     app_list: Arc<Mutex<AppList>>,
     selected_serial: Option<String>,
     search: String,
@@ -203,8 +257,12 @@ enum AdbSetup {
     Failed(String),
 }
 
+/// winget's Google.PlatformTools package points at a file Google no longer serves,
+/// so Windows gets Google's download page instead of a command.
+const ADB_DOWNLOAD_URL: &str = "https://developer.android.com/tools/releases/platform-tools";
+
 const ADB_INSTALL_COMMAND: &str = if cfg!(windows) {
-    "winget install Google.PlatformTools"
+    "%LOCALAPPDATA%\\OpenVysor"
 } else if cfg!(target_os = "macos") {
     "brew install android-platform-tools"
 } else {
@@ -292,10 +350,12 @@ impl App {
             show_wireless: false,
             pair_mode: PairMode::Qr,
             qr: None,
+            discovery: None,
             address: String::new(),
             code: String::new(),
             pair_busy: Arc::default(),
             pair_result: Arc::default(),
+            wifi_switch: Arc::default(),
             app_list: Arc::default(),
             selected_serial: None,
             search: String::new(),
@@ -466,6 +526,7 @@ impl App {
             if theme::button(ui, ButtonKind::Secondary, label, status.available).clicked() {
                 self.show_wireless = !self.show_wireless;
                 self.qr = None;
+                self.discovery = None;
             }
             if !self.core.phones().is_empty() && theme::button(ui, ButtonKind::Quiet, "Arrange windows", true).clicked() {
                 self.core.arrange(ui.ctx());
@@ -677,7 +738,16 @@ impl App {
                 }
                 ui.add_space(10.0);
             }
-            ui.label("You can also install it from a terminal, then restart OpenVysor:");
+            if cfg!(windows) {
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 4.0;
+                    ui.label("You can also download");
+                    ui.hyperlink_to("SDK Platform-Tools for Windows", ADB_DOWNLOAD_URL);
+                    ui.label("from Google, unzip it into this folder, then restart OpenVysor:");
+                });
+            } else {
+                ui.label("You can also install it from a terminal, then restart OpenVysor:");
+            }
             ui.add_space(4.0);
             Frame::NONE.fill(palette(ui).muted).corner_radius(8).inner_margin(Margin::same(10)).show(ui, |ui| {
                 ui.set_width(ui.available_width());
@@ -766,7 +836,46 @@ impl App {
                 {
                     self.disconnect_wireless(&device.serial);
                 }
+                let switching = self.wifi_switch.lock().unwrap().busy.is_some();
+                if device.connection == ConnectionType::Usb
+                    && theme::button(ui, ButtonKind::Quiet, "Use over Wi-Fi", online && !switching)
+                        .on_hover_text("Keeps working after you unplug the cable, until the phone restarts")
+                        .clicked()
+                {
+                    self.switch_to_wifi(ui.ctx(), &device.serial);
+                }
             });
+            let switch = self.wifi_switch.lock().unwrap();
+            if switch.busy.as_deref() == Some(device.serial.as_str()) {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.weak("Moving to Wi-Fi…");
+                });
+            } else if let Some((serial, result)) = &switch.result
+                && *serial == device.serial
+            {
+                match result {
+                    Ok(address) => ui.colored_label(colors.success, format!("Connected over Wi-Fi at {address}. You can unplug the cable.")),
+                    Err(error) => ui.colored_label(colors.danger, error),
+                };
+            }
+        });
+    }
+
+    fn switch_to_wifi(&self, ctx: &Context, serial: &str) {
+        let (core, ctx, state, serial) = (self.core.clone(), ctx.clone(), self.wifi_switch.clone(), serial.to_string());
+        state.lock().unwrap().busy = Some(serial.clone());
+        thread::spawn(move || {
+            let result = core
+                .registry
+                .adb_for_online(&serial)
+                .and_then(|adb| wireless::switch_to_wifi(&adb, &serial))
+                .inspect(|address| core.remember_wireless(address))
+                .map_err(|error| error.to_string());
+            let mut state = state.lock().unwrap();
+            state.busy = None;
+            state.result = Some((serial, result));
+            ctx.request_repaint();
         });
     }
 
@@ -789,6 +898,7 @@ impl App {
 
     fn disconnect_wireless(&self, serial: &str) {
         let (core, serial) = (self.core.clone(), serial.to_string());
+        core.forget_wireless(&serial);
         thread::spawn(move || {
             let result = core.registry.adb_for_wireless(&serial).and_then(|adb| wireless::disconnect(&adb, &serial));
             if let Err(error) = result {
@@ -807,6 +917,7 @@ impl App {
                     let modes = [(PairMode::Address, "IP address"), (PairMode::Code, "Pairing code"), (PairMode::Qr, "QR code")];
                     if theme::segmented(ui, &modes, &mut self.pair_mode) {
                         self.qr = None;
+                        self.discovery = None;
                         *self.pair_result.lock().unwrap() = None;
                     }
                 });
@@ -849,6 +960,10 @@ impl App {
                 if let Some(error) = &status.error {
                     ui.colored_label(colors.danger, error);
                 }
+                if !status.paired {
+                    ui.add_space(6.0);
+                    ui.add(Label::new(RichText::new(QR_HELP).small().weak()).wrap());
+                }
             });
         });
     }
@@ -857,20 +972,21 @@ impl App {
         let colors = palette(ui);
         let pairing = self.pair_mode == PairMode::Code;
         ui.weak(if pairing {
-            "On the phone, open Wireless debugging, then “Pair device with pairing code”."
+            "On the phone, open Wireless debugging, then “Pair device with pairing code”. Enter the IP address, port and code it shows."
         } else {
-            "Use the IP address and port shown at the top of Wireless debugging."
+            "Use the IP address and port shown at the top of Wireless debugging. Without a port, 5555 is used."
         });
         ui.add_space(4.0);
+        let mut connect_to = None;
         ui.horizontal(|ui| {
             ui.add(TextEdit::singleline(&mut self.address).hint_text("192.168.1.20:37000").desired_width(240.0).margin(vec2(10.0, 9.0)));
             if pairing {
                 ui.add(TextEdit::singleline(&mut self.code).hint_text("6-digit code").desired_width(130.0).margin(vec2(10.0, 9.0)));
             }
             let busy = self.pair_busy.load(Ordering::Relaxed);
-            let enabled = !busy && !self.address.trim().is_empty();
-            if theme::button(ui, ButtonKind::Primary, if pairing { "Pair" } else { "Connect" }, enabled).clicked() {
-                self.submit_address(ui.ctx(), pairing);
+            let enabled = !busy && !self.address.trim().is_empty() && (!pairing || !self.code.trim().is_empty());
+            if theme::button(ui, ButtonKind::Primary, if pairing { "Pair and connect" } else { "Connect" }, enabled).clicked() {
+                connect_to = Some(self.address.clone());
             }
             if busy {
                 ui.spinner();
@@ -882,24 +998,78 @@ impl App {
             }
             Some(Err(text)) => {
                 ui.colored_label(colors.danger, text);
+                ui.add(Label::new(RichText::new(if pairing { PAIR_HELP } else { CONNECT_HELP }).small().weak()).wrap());
             }
             None => {}
         }
+        if !pairing {
+            if let Some(address) = self.nearby_phones(ui) {
+                self.address = address.clone();
+                connect_to = Some(address);
+            }
+        }
+        if let Some(address) = connect_to {
+            self.submit_address(ui.ctx(), &address, pairing);
+        }
     }
 
-    fn submit_address(&self, ctx: &Context, pairing: bool) {
+    /// Phones found on the network and addresses that worked before. Returns the one clicked.
+    fn nearby_phones(&mut self, ui: &mut Ui) -> Option<String> {
+        if self.discovery.is_none() {
+            self.discovery = Some(Discovery::start(&self.core, ui.ctx()));
+        }
+        let found = self.discovery.as_ref().map(|discovery| discovery.found.lock().unwrap().clone()).unwrap_or_default();
+        let connected: Vec<String> = self.core.registry.devices().into_iter().map(|device| device.serial).collect();
+        let recent: Vec<String> = self
+            .core
+            .settings
+            .lock()
+            .unwrap()
+            .wireless_addresses
+            .iter()
+            .filter(|address| !connected.contains(address) && !found.iter().any(|entry| entry.address == **address))
+            .cloned()
+            .collect();
+        let rows: Vec<(String, &str)> = found
+            .iter()
+            .map(|entry| (entry.address.clone(), "Found on this network"))
+            .chain(recent.into_iter().map(|address| (address, "Used before")))
+            .collect();
+        if rows.is_empty() {
+            return None;
+        }
+        let busy = self.pair_busy.load(Ordering::Relaxed);
+        let mut clicked = None;
+        ui.add_space(10.0);
+        section_title(ui, "Phones");
+        for (address, hint) in rows {
+            setting_row(ui, &address, hint, |ui| {
+                if theme::button(ui, ButtonKind::Secondary, "Connect", !busy).clicked() {
+                    clicked = Some(address.clone());
+                }
+            });
+        }
+        clicked
+    }
+
+    fn submit_address(&self, ctx: &Context, address: &str, pairing: bool) {
         let (core, ctx) = (self.core.clone(), ctx.clone());
         let (busy, slot) = (self.pair_busy.clone(), self.pair_result.clone());
-        let (address, code) = (self.address.trim().to_string(), self.code.trim().to_string());
+        let (address, code) = (address.trim().to_string(), self.code.trim().to_string());
         busy.store(true, Ordering::Relaxed);
         *slot.lock().unwrap() = None;
         thread::spawn(move || {
             let result = core.registry.adb().and_then(|adb| {
-                if pairing {
-                    wireless::pair(&adb, &address, &code).map(|()| "Paired. Now connect using the IP address tab.".to_string())
-                } else {
-                    wireless::connect(&adb, &address)
-                }
+                let connected = if pairing { wireless::pair_and_connect(&adb, &address, &code)? } else { Some(wireless::connect(&adb, &address)?) };
+                Ok(match connected {
+                    Some(address) => {
+                        core.remember_wireless(&address);
+                        format!("Connected to {address}. The phone appears below.")
+                    }
+                    None => "Paired. The phone usually connects by itself in a few seconds. If it does not, use the IP address tab \
+with the address and port at the top of Wireless debugging."
+                        .to_string(),
+                })
             });
             *slot.lock().unwrap() = Some(result.map_err(|error| error.to_string()));
             busy.store(false, Ordering::Relaxed);

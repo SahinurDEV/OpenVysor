@@ -4,8 +4,9 @@
 
 You need Windows 10 or 11 x64, and ADB.
 
-1. Install ADB, if you don't already have it:
-   `winget install Google.PlatformTools`
+1. Install ADB, if you don't already have it: choose **Install ADB** in the app, or download
+   [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) and unzip
+   it into `%LOCALAPPDATA%\OpenVysor`.
 2. On the phone, enable Developer options and turn on **USB debugging**.
 3. Connect the phone with a USB data cable and tap **Allow** on the prompt.
 4. Open OpenVysor, go to **Devices** and choose **Mirror screen**.

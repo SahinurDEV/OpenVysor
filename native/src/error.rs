@@ -24,6 +24,8 @@ pub enum AppError {
     Invalid(String),
     #[error("{0}")]
     AdbSetup(String),
+    #[error("{0}")]
+    Wireless(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
@@ -42,6 +44,7 @@ impl AppError {
             AppError::Protocol(_) => "protocol",
             AppError::Invalid(_) => "invalid",
             AppError::AdbSetup(_) => "adb_setup",
+            AppError::Wireless(_) => "wireless",
             AppError::Io(_) => "io",
         }
     }

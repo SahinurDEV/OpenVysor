@@ -1,9 +1,21 @@
+use std::net::Ipv4Addr;
+use std::thread;
 use std::time::Duration;
 
-use super::Adb;
+use super::{Adb, DEFAULT_TIMEOUT};
 use crate::error::{AppError, Result};
 
 const WIRELESS_TIMEOUT: Duration = Duration::from_secs(20);
+/// The port adb listens on after `adb tcpip`.
+pub const TCPIP_PORT: u16 = 5555;
+const CONNECT_ATTEMPTS: u32 = 10;
+const CONNECT_RETRY_DELAY: Duration = Duration::from_secs(1);
+
+/// Drops stray spaces, and adds adb's usual port when only a host was typed.
+pub fn normalize_address(address: &str) -> String {
+    let address: String = address.split_whitespace().collect();
+    if address.contains(':') { address } else { format!("{address}:{TCPIP_PORT}") }
+}
 
 pub fn validate_address(address: &str) -> Result<()> {
     let invalid = || AppError::Invalid(format!("address {address}"));
@@ -21,7 +33,7 @@ fn validate_secret(value: &str) -> Result<()> {
     if valid { Ok(()) } else { Err(AppError::Invalid("pairing details".into())) }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MdnsService {
     pub name: String,
     pub service: String,
@@ -55,9 +67,11 @@ pub fn check_connect_output(output: &str) -> Result<String> {
 }
 
 pub fn pair(adb: &Adb, address: &str, code: &str) -> Result<()> {
-    validate_address(address)?;
-    validate_secret(code)?;
-    let output = adb.run_text(&["pair", address, code], WIRELESS_TIMEOUT)?;
+    let address: String = address.split_whitespace().collect();
+    let code: String = code.split_whitespace().collect();
+    validate_address(&address)?;
+    validate_secret(&code)?;
+    let output = adb.run_text(&["pair", &address, &code], WIRELESS_TIMEOUT)?;
     if output.contains("Successfully paired") {
         Ok(())
     } else {
@@ -65,13 +79,56 @@ pub fn pair(adb: &Adb, address: &str, code: &str) -> Result<()> {
     }
 }
 
+/// Connects and returns the address used, which gains port 5555 if none was given.
 pub fn connect(adb: &Adb, address: &str) -> Result<String> {
-    validate_address(address)?;
-    check_connect_output(&adb.run_text(&["connect", address], WIRELESS_TIMEOUT)?)
+    let address = normalize_address(address);
+    validate_address(&address)?;
+    check_connect_output(&adb.run_text(&["connect", &address], WIRELESS_TIMEOUT)?)?;
+    Ok(address)
 }
 
 pub fn disconnect(adb: &Adb, serial: &str) -> Result<()> {
     adb.run_text(&["disconnect", serial], WIRELESS_TIMEOUT).map(|_| ())
+}
+
+fn host_of(address: &str) -> &str {
+    address.rsplit_once(':').map_or(address, |(host, _)| host)
+}
+
+/// Phones on the network that accept a connection: paired phones with Wireless
+/// debugging on, and phones switched to Wi-Fi with `adb tcpip`.
+pub fn discover(adb: &Adb) -> Result<Vec<MdnsService>> {
+    let services = parse_mdns_services(&adb.run_text(&["mdns", "services"], WIRELESS_TIMEOUT)?);
+    Ok(services
+        .into_iter()
+        .filter(|entry| entry.service.contains("adb-tls-connect") || entry.service.starts_with("_adb._tcp"))
+        .filter(|entry| validate_address(&entry.address).is_ok())
+        .collect())
+}
+
+/// The connect port differs from the pairing port, so it is found on the network.
+fn connect_paired_host(adb: &Adb, host: &str, services: &[MdnsService]) -> Option<String> {
+    let entry = services
+        .iter()
+        .find(|entry| entry.service.contains("adb-tls-connect") && host_of(&entry.address) == host)?;
+    connect(adb, &entry.address).inspect_err(|error| log::warn!("connect after pairing: {error}")).ok()
+}
+
+/// Pairs, then connects without asking for the second port. Returns the connected
+/// address, or None when the phone did not announce itself in time; paired phones
+/// usually reconnect by themselves soon after.
+pub fn pair_and_connect(adb: &Adb, address: &str, code: &str) -> Result<Option<String>> {
+    pair(adb, address, code)?;
+    let address: String = address.split_whitespace().collect();
+    let host = host_of(&address);
+    for _ in 0..CONNECT_ATTEMPTS / 2 {
+        let services = parse_mdns_services(&adb.run_text(&["mdns", "services"], WIRELESS_TIMEOUT)?);
+        if let Some(connected) = connect_paired_host(adb, host, &services) {
+            return Ok(Some(connected));
+        }
+        thread::sleep(CONNECT_RETRY_DELAY);
+    }
+    Ok(None)
 }
 
 /// Checks whether the phone that scanned the QR code has appeared, and if so
@@ -87,18 +144,45 @@ pub fn poll_qr_pairing(adb: &Adb, name: &str, password: &str) -> Result<bool> {
         return Ok(false);
     };
     pair(adb, &pairing.address, password)?;
-
-    let host = pairing.address.rsplit_once(':').map_or("", |(host, _)| host);
-    let connectable = services.iter().find(|entry| {
-        entry.service.contains("adb-tls-connect") && entry.address.rsplit_once(':').is_some_and(|(h, _)| h == host)
-    });
     // Paired phones usually reconnect by themselves, so a miss here is not an error.
-    if let Some(entry) = connectable {
-        if let Err(error) = connect(adb, &entry.address) {
-            log::warn!("connect after pairing: {error}");
+    connect_paired_host(adb, host_of(&pairing.address), &services);
+    Ok(true)
+}
+
+/// Finds the phone's Wi-Fi address in the output of `ip -f inet -o addr show`.
+pub fn parse_wifi_ip(output: &str) -> Option<Ipv4Addr> {
+    output
+        .lines()
+        .filter_map(|line| {
+            let mut parts = line.split_whitespace();
+            let interface = parts.nth(1)?.trim_end_matches(':');
+            parts.find(|part| *part == "inet")?;
+            let ip: Ipv4Addr = parts.next()?.split('/').next()?.parse().ok()?;
+            interface.starts_with("wlan").then_some(ip)
+        })
+        .find(|ip| !ip.is_loopback() && !ip.is_link_local())
+}
+
+/// Moves a USB-connected phone to Wi-Fi with `adb tcpip`, which works on every
+/// Android version. Returns the address it connected to.
+pub fn switch_to_wifi(adb: &Adb, serial: &str) -> Result<String> {
+    let addresses = adb.device_text(serial, &["shell", "ip", "-f", "inet", "-o", "addr", "show"], DEFAULT_TIMEOUT)?;
+    let ip = parse_wifi_ip(&addresses).ok_or_else(|| {
+        AppError::Wireless("The phone is not on Wi-Fi. Join the same Wi-Fi as this computer, then try again.".into())
+    })?;
+    adb.device_text(serial, &["tcpip", &TCPIP_PORT.to_string()], WIRELESS_TIMEOUT)?;
+    let address = format!("{ip}:{TCPIP_PORT}");
+    // The phone restarts adb before it listens on the new port.
+    for _ in 0..CONNECT_ATTEMPTS {
+        thread::sleep(CONNECT_RETRY_DELAY);
+        match connect(adb, &address) {
+            Ok(address) => return Ok(address),
+            Err(error) => log::info!("connect to {address}: {error}"),
         }
     }
-    Ok(true)
+    Err(AppError::Wireless(format!(
+        "Could not reach the phone at {address}. Check that the phone and this computer are on the same Wi-Fi."
+    )))
 }
 
 #[cfg(test)]
@@ -131,6 +215,28 @@ studio-x1y2z3\t_adb-tls-pairing._tcp\t192.168.1.5:41022\n";
         assert_eq!(services.len(), 2);
         assert_eq!(services[1].name, "studio-x1y2z3");
         assert_eq!(services[1].address, "192.168.1.5:41022");
+    }
+
+    #[test]
+    fn adds_the_default_port_and_drops_spaces() {
+        assert_eq!(normalize_address(" 192.168.1.20 "), "192.168.1.20:5555");
+        assert_eq!(normalize_address("192.168.1.20 : 41234"), "192.168.1.20:41234");
+        assert!(validate_address(&normalize_address("phone.local")).is_ok());
+    }
+
+    #[test]
+    fn finds_the_wifi_address() {
+        let output = "1: lo    inet 127.0.0.1/8 scope host lo\\       valid_lft forever preferred_lft forever\n\
+21: rmnet_data0    inet 10.120.4.7/30 scope global rmnet_data0\\       valid_lft forever\n\
+30: wlan0    inet 192.168.0.105/24 brd 192.168.0.255 scope global wlan0\\       valid_lft forever\n";
+        assert_eq!(parse_wifi_ip(output), Some(Ipv4Addr::new(192, 168, 0, 105)));
+    }
+
+    #[test]
+    fn mobile_data_alone_is_not_wifi() {
+        let output = "1: lo    inet 127.0.0.1/8 scope host lo\n21: rmnet_data0    inet 10.120.4.7/30 scope global rmnet_data0\n";
+        assert_eq!(parse_wifi_ip(output), None);
+        assert_eq!(parse_wifi_ip(""), None);
     }
 
     #[test]

@@ -4,9 +4,6 @@ PackageVersion: 0.3.1
 InstallerType: portable
 Commands:
   - openvysor
-Dependencies:
-  PackageDependencies:
-    - PackageIdentifier: Google.PlatformTools
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/SahinurDEV/OpenVysor/releases/download/v0.3.1/OpenVysor-windows-x64.exe

@@ -28,6 +28,8 @@ pub struct MirrorManager {
     job: Option<JobObject>,
     clipboard_handler: OnceLock<ClipboardHandler>,
     clipboard_sync: AtomicBool,
+    /// The last text copied on the computer, so a window opened later still gets it.
+    computer_clipboard: Mutex<Option<String>>,
 }
 
 pub struct StartRequest<'a> {
@@ -90,6 +92,7 @@ impl MirrorManager {
         if let Ok(session) = &result {
             *session_slot.lock().unwrap() = Some(session.scid());
             self.sessions.lock().unwrap().insert(key.to_string(), session.clone());
+            self.send_computer_clipboard(session);
         }
         self.starting.lock().unwrap().remove(key);
         result
@@ -107,8 +110,27 @@ impl MirrorManager {
         self.clipboard_sync.load(Ordering::Relaxed)
     }
 
+    /// Records text the computer's clipboard now holds because a phone sent it.
+    pub fn remember_clipboard(&self, text: &str) {
+        *self.computer_clipboard.lock().unwrap() = Some(text.to_string());
+    }
+
+    /// Text copied before a window opened would otherwise never reach that phone.
+    fn send_computer_clipboard(&self, session: &Session) {
+        if !self.clipboard_sync_enabled() {
+            return;
+        }
+        if let Some(text) = self.computer_clipboard.lock().unwrap().clone() {
+            let message = ControlMessage::SetClipboard { sequence: 0, paste: false, text };
+            if let Err(error) = session.send(&message) {
+                log::warn!("clipboard to {}: {error}", session.serial());
+            }
+        }
+    }
+
     /// Sends text to each phone once, however many windows it has open.
     pub fn broadcast_clipboard(&self, text: &str) {
+        *self.computer_clipboard.lock().unwrap() = Some(text.to_string());
         let sessions = self.sessions.lock().unwrap();
         let mut seen = HashSet::new();
         for session in sessions.values().filter(|session| seen.insert(session.serial().to_string())) {

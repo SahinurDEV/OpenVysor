@@ -42,13 +42,14 @@ One small native Rust app. No account, no cloud, no root.
 | Mouse tapping | ✅ Confirmed on a real phone |
 | Phone-shaped windows, toolbar and full screen | ✅ Confirmed |
 | Clean exit, with nothing left running | ✅ Confirmed |
-| Whole-phone mirroring | 🧪 Written, being tested |
+| Clipboard sync, both ways | ✅ Confirmed on a real phone |
+| Screenshots and MP4 recording | ✅ Confirmed on a real phone |
+| Whole-phone mirroring | 🧪 Picture confirmed; mouse input being tested |
 | Dragging, scrolling, typing and rotation | 🧪 Written, being tested |
 | Automatic reconnection | 🧪 Written, being tested |
 | Wi-Fi by QR code, pairing code, IP address, or one click from USB | 🧪 Written, being tested |
-| Clipboard sync, and drag and drop for APKs and files | 🧪 Written, being tested |
+| Drag and drop for APKs and files | 🧪 Written, being tested |
 | Phone sound on your computer | 🧪 Written, being tested |
-| Screenshots and MP4 recording | 🧪 Written, being tested |
 | Workspaces, per-app quality and remembered positions | 🧪 Written, being tested |
 | Key mapping for games | 🧪 Written, being tested |
 | File browser with download and upload | 🧪 Written, being tested |

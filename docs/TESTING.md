@@ -90,6 +90,15 @@ with `Get-Clipboard`.
 | Text copied before the app started | Not sent, by design |
 | Use over Wi-Fi with the computer on another network | Clear error after about 20 s; the phone returned to USB mode (`service.adb.tcp.port` 0) |
 
+| Screenshot button on a whole-phone window | Saved a PNG to `Pictures\OpenVysor` |
+| Record button, then stop | Saved an MP4 that Windows reads as 1 min 24 s |
+| Record button, then close the window | Saved an MP4 that Windows reads as 1 min 52 s |
+
+Some clicks on the record button sent as posted window messages did not register. The
+phone also received a key press and a tap that the test did not send, so the computer may have
+been in use, and real cursor movement can move the pointer between a posted press and release.
+The cause was not confirmed.
+
 Before this run, an unreachable phone kept the button spinning for over 2.5 minutes, because
 each `adb connect` waited about 21 s. A successful switch was not tested, because the
 computer was on wired Ethernet on a different network from the phone.

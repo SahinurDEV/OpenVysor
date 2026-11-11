@@ -28,7 +28,7 @@ Android 16). See [TESTING.md](TESTING.md) for evidence.
 | P2 | Resolution, bitrate and FPS controls | Written, **not yet verified on a device** |
 | P2 | Advanced device information | Written, **not yet verified on a device** |
 | P2 | Clipboard sync, both directions | Device verified both ways, including text copied before a window opened |
-| P2 | Screen recording | Written, **not yet verified on a device** |
+| P2 | Screen recording | Device verified in the native app |
 | P2 | Phone audio on the PC (whole-phone sessions only) | Written, **not yet verified on a device** |
 | P3 | Profiles, history, shortcuts | Recent devices written; the rest not started |
 
@@ -44,11 +44,12 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | Mouse reaching the phone area | Observed in the app's log during manual use |
 | Phone window, drawn toolbar, full screen, close | Observed working in the running app |
 | Clean exit, no tunnel left behind | Verified |
-| Whole-phone mirroring | Written, **not yet verified** |
+| Whole-phone mirroring | Picture device verified; mouse input in that window **not yet verified** |
 | Drag, wheel, typing, rotation, auto-resume | Written, **not yet verified** |
 | Clipboard sync | Device verified both ways |
 | Drag and drop, wireless, sound | Written, **not yet verified** |
-| Recording to MP4 | Written and unit tested, **not verified on a device**. Video only, no sound |
+| Screenshot | Device verified: saved to `Pictures\OpenVysor` |
+| Recording to MP4 | Device verified: stopped with the button (1 min 24 s file) and by closing the window (1 min 52 s file). Video only, no sound |
 | Opening speed | Measured on a real phone: window in 245–367 ms, first picture about 0.95 s once the server is on the phone |
 | End-to-end latency | **Not measured** |
 | Hardware video decoding | Not done; decoding runs on the CPU |

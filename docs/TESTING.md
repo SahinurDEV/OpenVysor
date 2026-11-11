@@ -75,3 +75,21 @@ side, and closing them left no tunnel or server behind.
 
 Open issue: `Alt + Left/Right` sent with WScript.Shell SendKeys did not change the foreground
 window, although calling the same backend command directly did.
+
+## Clipboard and Use over Wi-Fi (native app)
+
+Run by hand on 2026-11-11 with the release build and a Nothing A059 on Android 16 over USB.
+The phone's clipboard was read by pasting into the Settings search field, and the computer's
+with `Get-Clipboard`.
+
+| Check | Result |
+| --- | --- |
+| Text copied on the computer while a whole-phone window is open | Pasted on the phone |
+| Text copied while no window is open, then a window opened (issue #6) | Pasted on the phone |
+| Text copied on the phone | Reached the Windows clipboard within 3 s |
+| Text copied before the app started | Not sent, by design |
+| Use over Wi-Fi with the computer on another network | Clear error after about 20 s; the phone returned to USB mode (`service.adb.tcp.port` 0) |
+
+Before this run, an unreachable phone kept the button spinning for over 2.5 minutes, because
+each `adb connect` waited about 21 s. A successful switch was not tested, because the
+computer was on wired Ethernet on a different network from the phone.

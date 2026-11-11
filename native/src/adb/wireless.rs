@@ -1,4 +1,4 @@
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::thread;
 use std::time::Duration;
 
@@ -10,6 +10,7 @@ const WIRELESS_TIMEOUT: Duration = Duration::from_secs(20);
 pub const TCPIP_PORT: u16 = 5555;
 const CONNECT_ATTEMPTS: u32 = 10;
 const CONNECT_RETRY_DELAY: Duration = Duration::from_secs(1);
+const PROBE_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Drops stray spaces, and adds adb's usual port when only a host was typed.
 pub fn normalize_address(address: &str) -> String {
@@ -171,17 +172,26 @@ pub fn switch_to_wifi(adb: &Adb, serial: &str) -> Result<String> {
         AppError::Wireless("The phone is not on Wi-Fi. Join the same Wi-Fi as this computer, then try again.".into())
     })?;
     adb.device_text(serial, &["tcpip", &TCPIP_PORT.to_string()], WIRELESS_TIMEOUT)?;
-    let address = format!("{ip}:{TCPIP_PORT}");
-    // The phone restarts adb before it listens on the new port.
+    let socket = SocketAddr::from((ip, TCPIP_PORT));
+    let address = socket.to_string();
+    // The phone restarts adb before it listens on the new port. A quick probe
+    // comes first because `adb connect` waits about 20 s for an unreachable host.
     for _ in 0..CONNECT_ATTEMPTS {
         thread::sleep(CONNECT_RETRY_DELAY);
+        if TcpStream::connect_timeout(&socket, PROBE_TIMEOUT).is_err() {
+            continue;
+        }
         match connect(adb, &address) {
             Ok(address) => return Ok(address),
             Err(error) => log::info!("connect to {address}: {error}"),
         }
     }
+    // Leave the phone as it was rather than listening on the network.
+    if let Err(error) = adb.device_text(serial, &["usb"], WIRELESS_TIMEOUT) {
+        log::warn!("could not return {serial} to USB: {error}");
+    }
     Err(AppError::Wireless(format!(
-        "Could not reach the phone at {address}. Check that the phone and this computer are on the same Wi-Fi."
+        "Could not reach the phone at {address}. Check that the phone and this computer are on the same network."
     )))
 }
 

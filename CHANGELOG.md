@@ -29,6 +29,8 @@
 
 - Text copied on the computer before a phone window opened never reached that phone. It is
   now sent when the window opens.
+- Use over Wi-Fi gives up after about 20 seconds when the phone cannot be reached, instead of
+  several minutes, and puts the phone back in USB mode.
 
 ## 0.3.1
 

@@ -1,6 +1,6 @@
 # Feature Status
 
-Last updated 2026-11-09. "Device verified" means tested against a real phone (Nothing A059,
+Last updated 2026-11-11. "Device verified" means tested against a real phone (Nothing A059,
 Android 16). See [TESTING.md](TESTING.md) for evidence.
 
 | Priority | Feature | Status |
@@ -22,12 +22,12 @@ Android 16). See [TESTING.md](TESTING.md) for evidence.
 | New | App list with search | Device verified, 122 apps listed |
 | P1 | Full-screen mode | Written, **not yet verified** |
 | P1 | Several devices at once | Backend supports it; UI shows one session; **not verified** |
-| P1 | Wireless ADB (QR code, pairing code with automatic connect, IP address, Use over Wi-Fi from USB, reconnect at startup) | Written, unit tests pass, **not yet verified on a device** |
+| P1 | Wireless ADB (QR code, pairing code with automatic connect, IP address, Use over Wi-Fi from USB, reconnect at startup) | Use over Wi-Fi device verified to fail cleanly when the phone is unreachable. **A successful connection is not yet verified on a device** |
 | P1 | APK installation by drag and drop | Written, **not yet verified on a device** |
 | P1 | File transfer by drag and drop (to Download) | Written, **not yet verified on a device** |
 | P2 | Resolution, bitrate and FPS controls | Written, **not yet verified on a device** |
 | P2 | Advanced device information | Written, **not yet verified on a device** |
-| P2 | Clipboard sync, both directions | Written, echo prevention unit tested, **not yet verified on a device** |
+| P2 | Clipboard sync, both directions | Device verified both ways, including text copied before a window opened |
 | P2 | Screen recording | Written, **not yet verified on a device** |
 | P2 | Phone audio on the PC (whole-phone sessions only) | Written, **not yet verified on a device** |
 | P3 | Profiles, history, shortcuts | Recent devices written; the rest not started |
@@ -46,7 +46,8 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | Clean exit, no tunnel left behind | Verified |
 | Whole-phone mirroring | Written, **not yet verified** |
 | Drag, wheel, typing, rotation, auto-resume | Written, **not yet verified** |
-| Clipboard sync, drag and drop, wireless, sound | Written, **not yet verified** |
+| Clipboard sync | Device verified both ways |
+| Drag and drop, wireless, sound | Written, **not yet verified** |
 | Recording to MP4 | Written and unit tested, **not verified on a device**. Video only, no sound |
 | Opening speed | Measured on a real phone: window in 245–367 ms, first picture about 0.95 s once the server is on the phone |
 | End-to-end latency | **Not measured** |

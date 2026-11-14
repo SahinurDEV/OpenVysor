@@ -68,8 +68,6 @@ struct State {
     pending_spot: Option<[f32; 2]>,
     bindings: Vec<KeyBinding>,
     held: Vec<usize>,
-    /// Counts starts, so results from an older start never overwrite a newer one.
-    generation: u64,
 }
 
 enum Action {
@@ -181,8 +179,6 @@ pub struct Phone {
     title: String,
     position: Pos2,
     state: Mutex<State>,
-    /// Held while a session stops and starts, so two quick reconnects run one after the other.
-    launching: Mutex<()>,
 }
 
 pub fn summarize_transfer(results: &[TransferResult]) -> String {
@@ -252,9 +248,7 @@ impl Phone {
                 pending_spot: None,
                 bindings,
                 held: Vec::new(),
-                generation: 0,
             }),
-            launching: Mutex::new(()),
         })
     }
 
@@ -332,37 +326,25 @@ impl Phone {
     }
 
     pub fn start(self: &Arc<Self>) {
-        let generation = {
+        {
             let mut state = self.state.lock().unwrap();
             state.status = Status::Starting;
             state.message = None;
             state.texture = None;
             state.touching = false;
-            state.generation += 1;
-            state.generation
-        };
+        }
         let phone = self.clone();
         thread::spawn(move || {
-            let _launching = phone.launching.lock().unwrap();
-            if phone.state.lock().unwrap().generation != generation {
-                // A newer start is queued behind this one and will do the work.
-                return;
-            }
             let _ = phone.core.mirrors.stop(&phone.key);
-            let result = phone.launch(generation);
+            let result = phone.launch();
             let mut state = phone.state.lock().unwrap();
             if state.closed {
                 drop(state);
                 let _ = phone.core.mirrors.stop(&phone.key);
                 return;
             }
-            if state.generation != generation {
-                return;
-            }
             match result {
-                // The stream may already have ended, and that must stay visible.
-                Ok(()) if state.status == Status::Starting => state.status = Status::Streaming,
-                Ok(()) => {}
+                Ok(()) => state.status = Status::Streaming,
                 Err(error) => {
                     state.status = Status::Ended;
                     state.message = Some(error.to_string());
@@ -382,7 +364,7 @@ impl Phone {
             .ok()
     }
 
-    fn launch(self: &Arc<Self>, generation: u64) -> Result<()> {
+    fn launch(self: &Arc<Self>) -> Result<()> {
         let adb = self.core.registry.adb_for_online(&self.serial)?;
         if let Some(package) = &self.package {
             validate_package(package)?;
@@ -401,9 +383,6 @@ impl Phone {
         let phone = self.clone();
         let on_end = Box::new(move |reason: String| {
             let mut state = phone.state.lock().unwrap();
-            if state.generation != generation {
-                return;
-            }
             state.status = Status::Ended;
             state.message = Some(reason);
             drop(state);
@@ -571,11 +550,12 @@ impl Phone {
                 }
             }
             let size = self.video.size();
-            if size != state.applied_size && !state.fullscreen
-                && let Some(window) = phone_window_size(size) {
+            if size != state.applied_size && !state.fullscreen {
+                if let Some(window) = phone_window_size(size) {
                     state.applied_size = size;
                     ctx.send_viewport_cmd(ViewportCommand::InnerSize(window));
                 }
+            }
             if state.notice.as_ref().is_some_and(|(_, at)| at.elapsed() > NOTICE_LIFETIME) {
                 state.notice = None;
             }

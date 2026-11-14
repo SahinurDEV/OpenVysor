@@ -70,7 +70,7 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
 | Computer | Formats |
 | --- | --- |
-| Windows x64 | `-setup.exe` (installer with uninstaller), `.exe` (portable), `.zip` |
+| Windows x64 | `.exe` (portable), `.zip` |
 | macOS, Apple Silicon and Intel | `.dmg`, `.zip` |
 | Linux x64 | `.deb`, `.tar.gz` |
 
@@ -88,9 +88,8 @@ Android's `adb` tool for you with one click. To install it yourself instead:
 1. Download the package for your computer from the
    [website](https://sahinurdev.github.io/OpenVysor/#install), which detects it for you, or from
    [Releases](https://github.com/SahinurDEV/OpenVysor/releases), which keeps every version.
-2. Install and open OpenVysor. On Windows, run `OpenVysor-windows-x64-setup.exe`; it needs no
-   administrator rights, and you can remove it later from **Settings → Apps → Installed apps**.
-   See [install notes](docs/PLATFORM_SETUP.md) for the security prompts on unsigned builds.
+2. Open OpenVysor. See [install notes](docs/PLATFORM_SETUP.md) for the security prompts on
+   unsigned builds.
 3. If the app asks, choose **Install ADB**.
 4. Connect the phone with a USB data cable and tap **Allow** on the phone.
 5. Choose **Mirror screen** or **Open an app**.

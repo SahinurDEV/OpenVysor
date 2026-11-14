@@ -155,8 +155,6 @@ pub struct Session {
     control: TcpStream,
     control_tx: Mutex<Option<Sender<Vec<u8>>>>,
     stopped: AtomicBool,
-    /// Set once the video stream has ended, for whatever reason.
-    ended: AtomicBool,
 }
 
 impl Session {
@@ -208,7 +206,6 @@ impl Session {
             control: control.try_clone()?,
             control_tx: Mutex::new(Some(control_tx)),
             stopped: AtomicBool::new(false),
-            ended: AtomicBool::new(false),
         });
 
         let mut writer = control.try_clone()?;
@@ -241,7 +238,6 @@ impl Session {
         thread::spawn(move || {
             let reason = pump_video(video, &*sink);
             log::info!("video stream ended for {}: {reason}", thread_session.serial);
-            thread_session.ended.store(true, Ordering::SeqCst);
             if !thread_session.stopped.load(Ordering::SeqCst) {
                 on_end(reason);
             }
@@ -256,11 +252,6 @@ impl Session {
 
     pub fn scid(&self) -> u32 {
         self.scid
-    }
-
-    /// True once the video stream has stopped, even if `stop` was never called.
-    pub fn has_ended(&self) -> bool {
-        self.ended.load(Ordering::SeqCst)
     }
 
     pub fn device_name(&self) -> &str {

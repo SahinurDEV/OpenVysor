@@ -53,11 +53,13 @@ pub fn spawn(mirrors: Arc<MirrorManager>) -> Sender<String> {
                     }
                 }
                 Err(RecvTimeoutError::Timeout) => {
-                    if mirrors.clipboard_sync_enabled()
-                        && let Ok(text) = clipboard.get_text()
-                            && tracker.changed(&text) {
+                    if mirrors.clipboard_sync_enabled() {
+                        if let Ok(text) = clipboard.get_text() {
+                            if tracker.changed(&text) {
                                 mirrors.broadcast_clipboard(&text);
                             }
+                        }
+                    }
                 }
                 Err(RecvTimeoutError::Disconnected) => return,
             }

@@ -187,37 +187,5 @@ fn candidate_paths() -> Vec<PathBuf> {
     if let Some(folder) = setup::tools_folder() {
         paths.push(folder.join(exe));
     }
-    // Unzipping by hand often adds a folder level, such as
-    // OpenVysor/platform-tools-latest-windows/platform-tools/adb.exe.
-    if let Some(parent) = setup::tools_folder().as_deref().and_then(Path::parent) {
-        paths.extend(unpacked_copies(parent, exe));
-    }
     paths
-}
-
-fn unpacked_copies(folder: &Path, exe: &str) -> Vec<PathBuf> {
-    let Ok(entries) = std::fs::read_dir(folder) else { return Vec::new() };
-    let mut found: Vec<PathBuf> = entries
-        .flatten()
-        .filter(|entry| entry.path().is_dir())
-        .flat_map(|entry| [entry.path().join(exe), entry.path().join("platform-tools").join(exe)])
-        .collect();
-    found.sort();
-    found
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn finds_adb_one_folder_deeper_after_a_manual_unzip() {
-        let root = std::env::temp_dir().join(format!("openvysor-adb-{}", std::process::id()));
-        let nested = root.join("platform-tools-latest-windows").join("platform-tools");
-        std::fs::create_dir_all(&nested).unwrap();
-        std::fs::write(nested.join("adb.exe"), "").unwrap();
-        let found = unpacked_copies(&root, "adb.exe");
-        assert!(found.iter().any(|path| path.is_file() && path.starts_with(&nested)));
-        std::fs::remove_dir_all(&root).unwrap();
-    }
 }

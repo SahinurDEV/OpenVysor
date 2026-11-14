@@ -195,11 +195,12 @@ fn decodes_a_real_stream() {
     let settled = newest_after(&video, Duration::from_secs(2), image).expect("no picture was decoded");
     tap(&manager, SEVEN, settled.size);
     let tapped = newest_after(&video, Duration::from_secs(2), None);
+    let image = Some(settled);
     let error = video.take_error();
     manager.stop_all();
 
     assert_eq!(error, None);
-    let image = settled;
+    let image = image.expect("no picture was decoded");
     let lit = image.pixels.iter().filter(|pixel| pixel.r() > 16 || pixel.g() > 16 || pixel.b() > 16).count();
     println!(
         "size={:?} frames={} first picture after {:?} lit pixels={lit} of {}",

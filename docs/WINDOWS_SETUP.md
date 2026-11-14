@@ -4,16 +4,19 @@
 
 You need Windows 10 or 11 x64, and ADB.
 
-1. Install ADB, if you don't already have it: choose **Install ADB** in the app, or download
+1. Run `OpenVysor-windows-x64-setup.exe`. It installs for your user only, with no administrator
+   rights, and adds a Start menu shortcut. To remove it later, use **Settings → Apps →
+   Installed apps**. Details are in [PLATFORM_SETUP.md](PLATFORM_SETUP.md#windows-10-and-11).
+2. Install ADB, if you don't already have it: choose **Install ADB** in the app, or download
    [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) and unzip
    it into `%LOCALAPPDATA%\OpenVysor`.
-2. On the phone, enable Developer options and turn on **USB debugging**.
-3. Connect the phone with a USB data cable and tap **Allow** on the prompt.
-4. Open OpenVysor, go to **Devices** and choose **Mirror screen**.
+3. On the phone, enable Developer options and turn on **USB debugging**.
+4. Connect the phone with a USB data cable and tap **Allow** on the prompt.
+5. In OpenVysor, choose **Mirror screen** or **Open an app**.
 
 OpenVysor looks for `adb.exe` in this order: the `OPENVYSOR_ADB` environment variable,
-`PATH`, `ANDROID_HOME` / `ANDROID_SDK_ROOT`, the default Android Studio folder, then WinGet
-packages.
+`PATH`, `ANDROID_HOME` / `ANDROID_SDK_ROOT`, the default Android Studio folder, WinGet
+packages, then `%LOCALAPPDATA%\OpenVysor\platform-tools` and the folders next to it.
 
 Some manufacturers need an extra developer option before input works. On Xiaomi devices,
 enable **USB debugging (Security settings)**.
@@ -22,25 +25,32 @@ enable **USB debugging (Security settings)**.
 
 | Tool | Version used |
 | --- | --- |
-| Node.js | 22.17 |
-| pnpm | 9.15 |
 | Rust (MSVC toolchain) | 1.99 |
 | Visual Studio Build Tools with the C++ workload | 2019 or later |
-| WebView2 Runtime | Included in Windows 11 |
+| NSIS, only for the installer | 3.10 |
 
 ```powershell
-pnpm install
-pnpm tauri dev      # development
-pnpm tauri build    # release build and NSIS installer
+cd native
+cargo run             # development
+cargo test            # unit tests
+cargo build --release # native\target\release\openvysor-native.exe
 ```
 
-The installer is written to `src-tauri/target/release/bundle/nsis/`.
+To build the installer and the portable packages as the release does, run this from the
+repository root in Git Bash, after the release build:
+
+```sh
+bash scripts/package-native.sh windows-x64
+```
+
+The packages are written to `dist-release/`. If `makensis` is not on the `PATH` or in
+`C:\Program Files (x86)\NSIS`, set `MAKENSIS` to its full path.
 
 ## Upgrading scrcpy-server
 
 The client and server versions must match exactly. To upgrade, replace
-`src-tauri/resources/scrcpy-server`, change `SCRCPY_VERSION` in
-`src-tauri/src/mirroring/protocol.rs`, and check the wire format against that release's source.
+`native/resources/scrcpy-server`, change `SCRCPY_VERSION` in
+`native/src/mirroring/protocol.rs`, and check the wire format against that release's source.
 
 Bundled v4.1 SHA-256, matching the official GitHub release:
 `deacb991ed2509715160ffdc7907e47b4160eb30d1566217e9047fd5b8850cae`

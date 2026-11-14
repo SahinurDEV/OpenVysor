@@ -743,10 +743,10 @@ impl App {
                     ui.spacing_mut().item_spacing.x = 4.0;
                     ui.label("You can also download");
                     ui.hyperlink_to("SDK Platform-Tools for Windows", ADB_DOWNLOAD_URL);
-                    ui.label("from Google, unzip it into this folder, then restart OpenVysor:");
+                    ui.label("from Google and unzip it into this folder. OpenVysor finds it within a few seconds:");
                 });
             } else {
-                ui.label("You can also install it from a terminal, then restart OpenVysor:");
+                ui.label("You can also install it from a terminal. OpenVysor finds it within a few seconds:");
             }
             ui.add_space(4.0);
             Frame::NONE.fill(palette(ui).muted).corner_radius(8).inner_margin(Margin::same(10)).show(ui, |ui| {
@@ -1002,12 +1002,11 @@ impl App {
             }
             None => {}
         }
-        if !pairing {
-            if let Some(address) = self.nearby_phones(ui) {
+        if !pairing
+            && let Some(address) = self.nearby_phones(ui) {
                 self.address = address.clone();
                 connect_to = Some(address);
             }
-        }
         if let Some(address) = connect_to {
             self.submit_address(ui.ctx(), &address, pairing);
         }

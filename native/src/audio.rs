@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use cpal::{FromSample, SampleFormat, SizedSample};
 
 const SOURCE_RATE: f64 = 48_000.0;
 /// Beyond this much queued audio, the oldest is dropped to stay close to live.
@@ -14,7 +15,7 @@ const MAX_QUEUED_FRAMES: usize = 48_000 / 8;
 type Queue = Arc<Mutex<VecDeque<[f32; 2]>>>;
 
 pub fn decode_pcm(bytes: &[u8]) -> impl Iterator<Item = [f32; 2]> + '_ {
-    bytes.chunks_exact(4).map(|frame| {
+    bytes.as_chunks::<4>().0.iter().map(|frame| {
         let sample = |at: usize| f32::from(i16::from_le_bytes([frame[at], frame[at + 1]])) / 32768.0;
         [sample(0), sample(2)]
     })
@@ -52,33 +53,55 @@ fn open_output(queue: Queue) -> Result<cpal::Stream, String> {
         .default_output_device()
         .ok_or_else(|| "no audio output device".to_string())?;
     let config = device.default_output_config().map_err(|error| error.to_string())?;
-    if config.sample_format() != cpal::SampleFormat::F32 {
-        return Err(format!("unsupported audio format {:?}", config.sample_format()));
-    }
     let channels = usize::from(config.channels());
-    let mut resampler = Resampler { step: SOURCE_RATE / f64::from(config.sample_rate()), position: 0.0 };
-    let stream = device
-        .build_output_stream::<f32, _, _>(
-            config.config(),
-            move |output, _| {
-                let mut queue = queue.lock().unwrap();
-                for frame in output.chunks_mut(channels) {
-                    let [left, right] = resampler.next(&mut queue);
-                    frame.fill(0.0);
-                    if let [only] = frame {
-                        *only = (left + right) / 2.0;
-                    } else {
-                        frame[0] = left;
-                        frame[1] = right;
-                    }
-                }
-            },
-            |error| log::warn!("audio output: {error}"),
-            None,
-        )
-        .map_err(|error| error.to_string())?;
+    let resampler = Resampler { step: SOURCE_RATE / f64::from(config.sample_rate()), position: 0.0 };
+    let output = Output { device: &device, config: config.config(), channels, queue, resampler };
+    // Many Linux and some Windows devices default to integer samples, not floats.
+    let stream = match config.sample_format() {
+        SampleFormat::F32 => output.build::<f32>(),
+        SampleFormat::I16 => output.build::<i16>(),
+        SampleFormat::U16 => output.build::<u16>(),
+        SampleFormat::I32 => output.build::<i32>(),
+        SampleFormat::U8 => output.build::<u8>(),
+        SampleFormat::F64 => output.build::<f64>(),
+        other => return Err(format!("unsupported audio format {other:?}")),
+    }?;
     stream.play().map_err(|error| error.to_string())?;
     Ok(stream)
+}
+
+struct Output<'a> {
+    device: &'a cpal::Device,
+    config: cpal::StreamConfig,
+    channels: usize,
+    queue: Queue,
+    resampler: Resampler,
+}
+
+impl Output<'_> {
+    fn build<T: SizedSample + FromSample<f32>>(self) -> Result<cpal::Stream, String> {
+        let Self { device, config, channels, queue, mut resampler } = self;
+        device
+            .build_output_stream::<T, _, _>(
+                config,
+                move |output, _| {
+                    let mut queue = queue.lock().unwrap();
+                    for frame in output.chunks_mut(channels) {
+                        let [left, right] = resampler.next(&mut queue);
+                        frame.fill(T::EQUILIBRIUM);
+                        if let [only] = frame {
+                            *only = T::from_sample((left + right) / 2.0);
+                        } else {
+                            frame[0] = T::from_sample(left);
+                            frame[1] = T::from_sample(right);
+                        }
+                    }
+                },
+                |error| log::warn!("audio output: {error}"),
+                None,
+            )
+            .map_err(|error| error.to_string())
+    }
 }
 
 /// Returns the sender for PCM packets. Playback stops when it is dropped.

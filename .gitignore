@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Release packages built by scripts/package-native.sh
+dist-release/

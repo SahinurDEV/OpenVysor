@@ -41,6 +41,10 @@ jobs:
       - name: Install NASM on Intel macOS
         if: matrix.platform == 'macos-x64'
         run: brew install nasm
+      - name: Install NSIS for the Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: command -v makensis || [ -x "/c/Program Files (x86)/NSIS/makensis.exe" ] || choco install nsis -y --no-progress
       - name: Build
         working-directory: native
         run: cargo build --release --locked

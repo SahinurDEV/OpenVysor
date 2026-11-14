@@ -92,7 +92,13 @@ impl MirrorManager {
         if let Ok(session) = &result {
             *session_slot.lock().unwrap() = Some(session.scid());
             self.sessions.lock().unwrap().insert(key.to_string(), session.clone());
-            self.send_computer_clipboard(session);
+            // A stream that ended before it was published could not remove itself,
+            // and would block the next start with "session exists".
+            if session.has_ended() {
+                self.remove_ended(key, Some(session.scid()));
+            } else {
+                self.send_computer_clipboard(session);
+            }
         }
         self.starting.lock().unwrap().remove(key);
         result
@@ -162,12 +168,11 @@ impl MirrorManager {
 
     fn remove_ended(&self, key: &str, scid: Option<u32>) {
         let mut sessions = self.sessions.lock().unwrap();
-        if sessions.get(key).is_some_and(|session| Some(session.scid()) == scid) {
-            if let Some(session) = sessions.remove(key) {
+        if sessions.get(key).is_some_and(|session| Some(session.scid()) == scid)
+            && let Some(session) = sessions.remove(key) {
                 drop(sessions);
                 session.stop();
             }
-        }
     }
 
     pub fn stop(&self, key: &str) -> Result<()> {

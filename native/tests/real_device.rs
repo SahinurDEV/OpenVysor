@@ -220,3 +220,29 @@ fn decodes_a_real_stream() {
     println!("pixels changed in the number display: {changed}");
     assert!(changed > 100, "tapping 7 did not change the number display");
 }
+
+#[test]
+#[ignore = "needs a real phone"]
+fn lists_a_folder_with_sizes_and_odd_names() {
+    use openvysor_native::transfer::files;
+    let adb = Adb::locate().unwrap();
+    let serial = first_online_serial(&adb);
+    let folder = "/sdcard/Download/openvysor-list-test";
+    let make = format!(
+        "rm -rf {f} && mkdir -p {f}/'sub dir' && printf 12345 > {f}/'a b.txt' && printf 1 > {f}/\"it's.txt\" && printf 12 > {f}/.hidden",
+        f = files::shell_quote(folder)
+    );
+    adb.device_text(&serial, &["shell", &make], Duration::from_secs(10)).unwrap();
+    let entries = files::list(&adb, &serial, folder);
+    adb.device_text(&serial, &["shell", &format!("rm -rf {}", files::shell_quote(folder))], Duration::from_secs(10)).unwrap();
+    let entries = entries.unwrap();
+    let size = |name: &str| entries.iter().find(|entry| entry.name == name).unwrap_or_else(|| panic!("{name} missing")).size;
+    assert_eq!(entries[0].name, "sub dir");
+    assert_eq!(size("sub dir"), None);
+    assert_eq!(size("a b.txt"), Some(5));
+    assert_eq!(size("it's.txt"), Some(1));
+    assert_eq!(size(".hidden"), Some(2));
+    assert!(files::list(&adb, &serial, "/sdcard/no-such-folder-openvysor").is_err());
+    let empty = files::list(&adb, &serial, "/sdcard/Download").unwrap();
+    println!("/sdcard/Download: {} items", empty.len());
+}

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use eframe::egui::{Align, Context, CursorIcon, Layout, ScrollArea, Sense, Ui, pos2, vec2};
+use eframe::egui::{Align, Context, CursorIcon, FontId, Key, Layout, ScrollArea, Sense, TextEdit, Ui, pos2, vec2};
 
 use crate::error::AppError;
 use crate::state::Core;
@@ -25,14 +25,22 @@ type Message = Arc<Mutex<Option<Result<String, String>>>>;
 
 pub struct FilesPage {
     path: String,
+    /// Narrows the folder already loaded, so typing never asks the phone again.
+    filter: String,
     listing: Arc<Mutex<Listing>>,
     message: Message,
 }
 
 impl Default for FilesPage {
     fn default() -> Self {
-        Self { path: files::ROOT.to_string(), listing: Arc::default(), message: Arc::default() }
+        Self { path: files::ROOT.to_string(), filter: String::new(), listing: Arc::default(), message: Arc::default() }
     }
+}
+
+/// Whether `name` contains `filter`, ignoring case.
+fn matches_filter(name: &str, filter: &str) -> bool {
+    let filter = filter.trim();
+    filter.is_empty() || name.to_lowercase().contains(&filter.to_lowercase())
 }
 
 fn run_transfer(ctx: &Context, message: &Message, start: String, job: impl FnOnce() -> Result<String, AppError> + Send + 'static) {
@@ -66,6 +74,11 @@ impl FilesPage {
             }
             ctx.request_repaint();
         });
+    }
+
+    fn open(&mut self, path: String) {
+        self.path = path;
+        self.filter.clear();
     }
 
     fn refresh(&self) {
@@ -107,7 +120,14 @@ impl FilesPage {
             let glyph = if entry.is_dir { Glyph::Folder } else { Glyph::File };
             let tint = if entry.is_dir { colors.primary } else { colors.secondary };
             theme::glyph(ui.painter(), glyph, pos2(rect.left() + 22.0, rect.center().y), 18.0, tint);
-            let job = theme::one_line(&entry.name, semibold(14.0), colors.foreground, rect.width() - 56.0);
+            let mut size_width = 0.0;
+            if let Some(bytes) = entry.size {
+                let size = ui.painter().layout_no_wrap(files::readable_size(bytes), FontId::proportional(13.0), colors.secondary);
+                size_width = size.size().x + 16.0;
+                let at = pos2(rect.right() - size.size().x - 8.0, rect.center().y - size.size().y / 2.0);
+                ui.painter().galley(at, size, colors.secondary);
+            }
+            let job = theme::one_line(&entry.name, semibold(14.0), colors.foreground, rect.width() - 56.0 - size_width);
             let galley = ui.painter().layout_job(job);
             ui.painter().galley(pos2(rect.left() + 44.0, rect.center().y - galley.size().y / 2.0), galley, colors.foreground);
             response
@@ -127,7 +147,7 @@ impl FilesPage {
 
         ui.horizontal(|ui| {
             if theme::button(ui, ButtonKind::Secondary, "Up", self.path != files::ROOT).clicked() {
-                self.path = files::parent(&self.path);
+                self.open(files::parent(&self.path));
             }
             if theme::button(ui, ButtonKind::Quiet, "Refresh", true).clicked() {
                 self.refresh();
@@ -135,6 +155,13 @@ impl FilesPage {
             ui.add_space(6.0);
             let shown = self.path.strip_prefix(files::ROOT).unwrap_or(&self.path);
             ui.label(format!("Phone storage{shown}"));
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                let edit = TextEdit::singleline(&mut self.filter).hint_text("Filter this folder").desired_width(200.0).margin(vec2(10.0, 7.0));
+                let response = ui.add(edit);
+                if response.has_focus() && ui.input(|input| input.key_pressed(Key::Escape)) {
+                    self.filter.clear();
+                }
+            });
         });
         ui.weak("Drop files on this window to upload them to this folder");
         match &*self.message.lock().unwrap() {
@@ -163,8 +190,13 @@ impl FilesPage {
             ui.vertical_centered(|ui| ui.weak("This folder is empty"));
             return;
         }
-        let entries = listing.entries.clone();
+        let entries: Vec<RemoteEntry> = listing.entries.iter().filter(|entry| matches_filter(&entry.name, &self.filter)).cloned().collect();
         drop(listing);
+        if entries.is_empty() {
+            ui.add_space(30.0);
+            ui.vertical_centered(|ui| ui.weak(format!("Nothing here matches \"{}\"", self.filter.trim())));
+            return;
+        }
 
         let mut enter = None;
         let mut save = None;
@@ -183,7 +215,28 @@ impl FilesPage {
             self.download(ui.ctx(), core, serial, &entry);
         }
         if let Some(name) = enter {
-            self.path = files::child(&self.path, &name);
+            self.open(files::child(&self.path, &name));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filter_ignores_case_and_spaces_around_it() {
+        assert!(matches_filter("IMG_2024.jpg", "img"));
+        assert!(matches_filter("Screenshot.PNG", " .png "));
+        assert!(matches_filter("anything", ""));
+        assert!(!matches_filter("Download", "dcim"));
+    }
+
+    #[test]
+    fn opening_a_folder_clears_the_filter() {
+        let mut page = FilesPage { filter: "cam".to_string(), ..FilesPage::default() };
+        page.open(files::child(files::ROOT, "DCIM"));
+        assert_eq!(page.path, "/sdcard/DCIM");
+        assert!(page.filter.is_empty());
     }
 }

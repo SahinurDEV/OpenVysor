@@ -115,7 +115,7 @@
       </div>
       <div class="panel" role="tabpanel" id="dp-win" aria-labelledby="d-win">
         <ol class="steps">
-          <li><a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe" download>Download OpenVysor-windows-x64.exe</a> for Windows 10 or 11 x64, and keep it anywhere.</li>
+          <li><a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64-setup.exe" download>Download OpenVysor-windows-x64-setup.exe</a> for Windows 10 or 11 x64 and run it. It installs for you only, without administrator rights, and you can remove it later from <strong>Settings → Apps → Installed apps</strong>. If you'd rather not install anything, use the portable <a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe" download>OpenVysor-windows-x64.exe</a>.</li>
           <li>Open it. SmartScreen may warn you because the app isn't code-signed yet. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
           <li>If the app asks, choose <strong>Install ADB</strong>. To install it yourself, download <a href="https://developer.android.com/tools/releases/platform-tools">SDK Platform-Tools</a> and unzip it into <code>%LOCALAPPDATA%\OpenVysor</code>.</li>
         </ol>
@@ -132,7 +132,8 @@
         <div class="callout warn" style="margin-top:0"><p>This is a preview build that hasn't mirrored a real phone yet.</p></div>
         <ol class="steps">
           <li><a href="./#install">Download the .deb</a> on Debian or Ubuntu, and install it. This also brings in ADB and its USB access rules.<pre class="term"><code>sudo apt install ./OpenVysor-linux-x64.deb</code></pre></li>
-          <li>On another distribution, install ADB and your distribution's Android udev rules, then unpack the .tar.gz and run <code>./openvysor</code>.</li>
+          <li>On another distribution, install your distribution's Android udev rules, then unpack the .tar.gz and run <code>./openvysor</code>. Choose <strong>Install ADB</strong> if you don't have ADB; it needs <code>curl</code> and <code>unzip</code>.</li>
+          <li>A Flatpak can be built from the <a href="https://github.com/SahinurDEV/OpenVysor/tree/main/packaging/flatpak">manifest in the repository</a>.</li>
         </ol>
         <p>It needs glibc 2.35 or later, X11 or Wayland, and OpenGL.</p>
       </div>

@@ -150,7 +150,7 @@
   // Finds this computer, so the right download can be offered first.
   const latest = "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/";
   const downloads = {
-    "windows-exe": ["Windows", latest + "OpenVysor-windows-x64.exe", ".exe, portable"],
+    "windows-setup": ["Windows", latest + "OpenVysor-windows-x64-setup.exe", "Installer, no administrator rights needed"],
     "mac-arm-dmg": ["macOS (Apple Silicon)", latest + "OpenVysor-macos-arm64.dmg", ".dmg, preview build"],
     "mac-intel-dmg": ["macOS (Intel)", latest + "OpenVysor-macos-x64.dmg", ".dmg, preview build"],
     "linux-deb": ["Linux", latest + "OpenVysor-linux-x64.deb", ".deb, preview build"],
@@ -187,7 +187,7 @@
     offer("mac-arm-dmg");
     macIsIntel().then((intel) => { if (intel) offer("mac-intel-dmg"); });
   } else {
-    offer(platform === "linux" ? "linux-deb" : "windows-exe");
+    offer(platform === "linux" ? "linux-deb" : "windows-setup");
   }
 
   // Tabs. The choice is shared by every tab set and kept between pages.

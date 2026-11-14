@@ -31,10 +31,10 @@
       "description": "Free, open-source Android screen mirroring and control for your computer, built on ADB and scrcpy-server.",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "Windows, macOS, Linux",
-      "softwareVersion": "0.3.1",
+      "softwareVersion": "0.5.0",
       "image": "https://sahinurdev.github.io/OpenVysor/og-image.png",
       "screenshot": "https://sahinurdev.github.io/OpenVysor/screenshot.png",
-      "downloadUrl": "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe",
+      "downloadUrl": "https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64-setup.exe",
       "license": "https://www.apache.org/licenses/LICENSE-2.0",
       "isAccessibleForFree": true,
       "offers": {
@@ -146,7 +146,7 @@
   <div class="hero">
     <div class="wrap hero-grid">
       <div>
-        <span class="tag"><i class="pulse"></i>Early development · v0.3</span>
+        <span class="tag"><i class="pulse"></i>Early development · v0.5</span>
         <h1 data-words>Your Android phone, in a <em>window</em> on your desktop.</h1>
         <p class="lead">Open the whole phone, or give every app its own phone-shaped window. Control it with your mouse and keyboard. A free, open-source way to use Android screen mirroring in one small native app.</p>
         <div class="actions">
@@ -260,8 +260,12 @@
         </div>
         <div class="panel" role="tabpanel" id="p-win" aria-labelledby="t-win">
           <div class="dls">
+          <div class="dl" data-key="windows-setup">
+            <div><b>Windows x64 installer (.exe)</b><span class="rec">Recommended for you</span><small>Installs for you only, without administrator rights. Remove it from Settings → Apps. Windows 10 or 11.</small></div>
+            <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64-setup.exe" download>Download installer</a>
+          </div>
           <div class="dl" data-key="windows-exe">
-            <div><b>Windows x64 (.exe)</b><span class="rec">Recommended for you</span><small>Portable: one file, nothing to install. Windows 10 or 11.</small></div>
+            <div><b>Windows x64 portable (.exe)</b><span class="rec">Recommended for you</span><small>One file, nothing to install.</small></div>
             <a class="btn small" href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/OpenVysor-windows-x64.exe" download>Download .exe</a>
           </div>
           <div class="dl" data-key="windows-zip">
@@ -270,6 +274,7 @@
           </div>
           </div>
           <ol class="steps">
+            <li>Run <code>OpenVysor-windows-x64-setup.exe</code>. It adds OpenVysor to the Start menu, with an optional desktop shortcut.</li>
             <li>Open the app and choose <strong>Install ADB</strong> if it asks. It downloads Google's ADB tool and checks it. To install it yourself, download <a href="https://developer.android.com/tools/releases/platform-tools">SDK Platform-Tools</a> and unzip it into <code>%LOCALAPPDATA%\OpenVysor</code>.</li>
             <li>The app isn't code-signed yet, so Windows SmartScreen may warn you. If you trust this download, choose <strong>More info</strong>, then <strong>Run anyway</strong>.</li>
           </ol>
@@ -314,6 +319,8 @@
           </div>
           <ol class="steps">
             <li>Install the package. This also brings in ADB and its USB access rules.<pre class="term"><code>sudo apt install ./OpenVysor-linux-x64.deb</code></pre></li>
+            <li>With the .tar.gz, the app can download ADB for you: choose <strong>Install ADB</strong>. Your distribution's Android udev rules are still needed for USB.</li>
+            <li>Prefer Flatpak? Build it from the <a href="https://github.com/SahinurDEV/OpenVysor/tree/main/packaging/flatpak">manifest in the repository</a>.</li>
           </ol>
         </div>
         <p class="all-versions"><a href="https://github.com/SahinurDEV/OpenVysor/releases">All versions on GitHub</a> · <a href="https://github.com/SahinurDEV/OpenVysor/releases/latest/download/SHA256SUMS.txt">Checksums</a></p>

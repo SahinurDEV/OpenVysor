@@ -2,8 +2,9 @@
 
 Download the package for your computer from the [website](https://sahinurdev.github.io/OpenVysor/#install),
 which detects it for you, or from the [Releases page](https://github.com/SahinurDEV/OpenVysor/releases), which keeps every version. Every platform also
-needs a phone with USB debugging turned on, and Android's `adb` tool. On Windows and macOS, the
-app offers an **Install ADB** button that downloads a fixed version from Google and checks it.
+needs a phone with USB debugging turned on, and Android's `adb` tool. On Windows, macOS and
+Linux x64, the app offers an **Install ADB** button that downloads a fixed version from Google
+and checks it.
 
 Real-device status for each platform is in [FEATURE_STATUS.md](FEATURE_STATUS.md).
 
@@ -68,7 +69,11 @@ install -Dm644 openvysor.png ~/.local/share/icons/hicolor/32x32/apps/openvysor.p
 install -Dm644 openvysor.desktop ~/.local/share/applications/openvysor.desktop
 ```
 
-The package needs glibc 2.35 or later, X11 or Wayland, and OpenGL.
+The package needs glibc 2.35 or later, X11 or Wayland, and OpenGL. Instead of installing adb
+yourself, you can choose **Install ADB** in the app; this needs `curl` and `unzip`. Your user
+still needs the udev rules to open the phone's USB device.
+
+To build and run the Flatpak instead, see [packaging/flatpak/README.md](../packaging/flatpak/README.md).
 
 ## Building from source
 

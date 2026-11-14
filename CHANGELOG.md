@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+
+- The Files page shows each file's size, such as `4.2 MB`. Folders show none.
+- A filter box on the Files page narrows the open folder by name, ignoring case, without
+  asking the phone again. Opening another folder clears it.
+- One-click **Install ADB** on Linux x64. It downloads Google's platform-tools r37.0.0, checks
+  its SHA-256 and unpacks it with `unzip`.
+- A Flatpak manifest, `packaging/flatpak/`, that builds from source offline. Its README lists
+  each permission and how phones are reached over USB from the sandbox.
+- A Bangla README, `README.bn.md`.
+
+### Fixed
+
+- Notifications: on Android 16, and wherever an app sets a lock screen version, the page
+  showed that version, such as "WhatsApp", instead of the real title. It is now skipped.
+- Notifications: text over several lines showed only its first line, and could end the list
+  early, hiding the notifications after it. A tag holding a line break, as WhatsApp's chat
+  notifications have, did the same.
+- Screenshots and recordings failed with "no output folder" on Linux systems without a
+  configured Pictures or Videos folder, and in the Flatpak. They now use `~/Pictures` and
+  `~/Videos`.
+
 ## 0.4.0
 
 ### Added

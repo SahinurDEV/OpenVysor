@@ -37,6 +37,20 @@ recent motion events: 2, age=582ms and 574ms
 An earlier 5-second run measured 156 delta frames, about 31 FPS, on an idle lock screen.
 Android only encodes when the screen changes, so this is not a maximum frame rate.
 
+## Release check for 0.5.0 (native app)
+
+Run on 2026-11-14 with a Nothing A059 on Android 16 over USB.
+
+| Check | Result |
+| --- | --- |
+| `cargo test` and `cargo clippy --all-targets` | 99 passed, no warnings |
+| Real-device tests, release build | All 3 passed. New: a folder listed with sizes, including a name with a quote, one with a space and a hidden file; a missing folder reports an error; the 276-item Download folder lists |
+| Notification parser on the phone's real `dumpsys` output | All 4 notifications read, against 1 before the fix; the lock screen copy no longer replaces the title |
+| Flatpak, in WSL Ubuntu 24.04 | Built offline from `cargo-sources.json`; `appstreamcli validate` and `desktop-file-validate` pass; the app opens through WSLg and offers Install ADB |
+
+Not covered: the Files page's size column and filter box seen in a real window, Install ADB
+run inside the Flatpak, and a phone over USB from the Flatpak, as WSL has no USB device.
+
 ## Release check for 0.4.0 (native app)
 
 Run on 2026-11-14 with a Nothing A059 on Android 16 over USB.

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.SahinurDEV.OpenVysor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <name>OpenVysor</name>
+  <summary>Mirror and control Android phones</summary>
+  <developer id="io.github.sahinurdev">
+    <name>SahinurDEV</name>
+  </developer>
+  <description>
+    <p>
+      OpenVysor shows an Android phone on your computer and lets you control it with the mouse
+      and keyboard. Open the whole phone, or give every app its own phone-shaped window.
+    </p>
+    <p>
+      Video and input travel only between your phone and your computer, over USB or your own
+      Wi-Fi. There is no account and no server, and the phone needs no root.
+    </p>
+    <ul>
+      <li>Each app runs on its own virtual display, so several can sit side by side</li>
+      <li>Clipboard in both directions, screenshots and MP4 recording</li>
+      <li>Wi-Fi by QR code, pairing code, IP address, or one click from USB</li>
+      <li>A file browser, and drag and drop to install APKs or send files</li>
+    </ul>
+    <p>
+      The phone needs USB debugging turned on. OpenVysor uses Android's adb tool, which it can
+      download from Google with one click.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.SahinurDEV.OpenVysor.desktop</launchable>
+  <url type="homepage">https://sahinurdev.github.io/OpenVysor/</url>
+  <url type="bugtracker">https://github.com/SahinurDEV/OpenVysor/issues</url>
+  <url type="vcs-browser">https://github.com/SahinurDEV/OpenVysor</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/docs/images/app.png</image>
+      <caption>App windows opened from the main window</caption>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <releases>
+    <release version="0.5.0" date="2026-11-14">
+      <description>
+        <p>File sizes and a filter box in the file browser, notification fixes for Android 16,
+        one-click ADB setup on Linux, and this Flatpak.</p>
+      </description>
+    </release>
+    <release version="0.4.0" date="2026-11-14"/>
+  </releases>
+</component>

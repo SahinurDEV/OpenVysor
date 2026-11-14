@@ -21,6 +21,8 @@ const PACKAGE: Option<(&str, &str)> = if cfg!(windows) {
     Some(("platform-tools_r37.0.0-win.zip", "4fe305812db074cea32903a489d061eb4454cbc90a49e8fea677f4b7af764918"))
 } else if cfg!(target_os = "macos") {
     Some(("platform-tools_r37.0.0-darwin.zip", "094a1395683c509fd4d48667da0d8b5ef4d42b2abfcd29f2e8149e2f989357c7"))
+} else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+    Some(("platform-tools_r37.0.0-linux.zip", "198ae156ab285fa555987219af237b31102fefe8b9d2bc274708a8d4f2865a07"))
 } else {
     None
 };
@@ -79,7 +81,13 @@ fn download_and_unpack(work: &Path, name: &str, checksum: &str) -> Result<()> {
     if !has_checksum(&std::fs::read(&archive)?, checksum) {
         return Err(AppError::AdbSetup("The download did not match Google's package, so it was not installed.".to_string()));
     }
-    run("tar", &[OsStr::new("-xf"), archive.as_os_str(), OsStr::new("-C"), work.as_os_str()], "The download could not be unpacked.")
+    // The tar of Windows and macOS reads zip files. GNU tar on Linux does not.
+    if cfg!(target_os = "linux") {
+        let args = [OsStr::new("-q"), archive.as_os_str(), OsStr::new("-d"), work.as_os_str()];
+        run("unzip", &args, "The download could not be unpacked. Install unzip, then try again.")
+    } else {
+        run("tar", &[OsStr::new("-xf"), archive.as_os_str(), OsStr::new("-C"), work.as_os_str()], "The download could not be unpacked.")
+    }
 }
 
 /// Puts adb in the app's own folder. The device watcher finds it on its next poll.

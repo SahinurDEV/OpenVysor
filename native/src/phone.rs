@@ -201,6 +201,12 @@ pub fn summarize_transfer(results: &[TransferResult]) -> String {
     }
 }
 
+/// Minimal Linux systems and Flatpak sandboxes may have no configured Pictures or Videos
+/// folder, so the usual name in the home folder is used instead.
+fn user_folder(configured: Option<PathBuf>, fallback: &str) -> Option<PathBuf> {
+    configured.or_else(|| dirs::home_dir().map(|home| home.join(fallback)))
+}
+
 fn timestamped(folder: Option<PathBuf>, prefix: &str, extension: &str) -> Result<PathBuf> {
     let folder = folder.ok_or_else(|| AppError::Invalid("no output folder".into()))?.join("OpenVysor");
     std::fs::create_dir_all(&folder)?;
@@ -468,7 +474,7 @@ impl Phone {
             });
             return;
         }
-        match timestamped(dirs::video_dir(), "recording", "mp4") {
+        match timestamped(user_folder(dirs::video_dir(), "Videos"), "recording", "mp4") {
             Ok(path) => {
                 self.video.start_recording(path);
                 // Recordings must begin on a key frame, so ask for one now.
@@ -483,7 +489,7 @@ impl Phone {
         thread::spawn(move || {
             let result = phone.core.registry.adb_for_online(&phone.serial).and_then(|adb| {
                 let image = screenshot(&adb, &phone.serial)?;
-                let path = timestamped(dirs::picture_dir(), "screenshot", "png")?;
+                let path = timestamped(user_folder(dirs::picture_dir(), "Pictures"), "screenshot", "png")?;
                 std::fs::write(&path, image)?;
                 Ok(path)
             });

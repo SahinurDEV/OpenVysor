@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=OpenVysor
+Comment=Mirror and control Android phones
+Exec=openvysor
+Icon=io.github.SahinurDEV.OpenVysor
+Terminal=false
+Categories=Utility;
+Keywords=android;adb;mirror;phone;scrcpy;
+StartupWMClass=openvysor

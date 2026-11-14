@@ -1,0 +1,55 @@
+# Flatpak manifest for OpenVysor. Build steps are in README.md next to this file.
+id: io.github.SahinurDEV.OpenVysor
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: openvysor
+finish-args:
+  # Windows through XWayland as well as X11. The clipboard library uses X11, so on a
+  # Wayland desktop the windows must be X11 windows too for copy and paste to work.
+  - --socket=x11
+  - --share=ipc
+  # Without this the window library would try the Wayland socket it is not given.
+  - --unset-env=WAYLAND_DISPLAY
+  # OpenGL drawing, and USB access so adb can reach phones (/dev/bus/usb).
+  - --device=all
+  # adb's server on localhost, phones over Wi-Fi, and the optional ADB download.
+  - --share=network
+  # Phone sound.
+  - --socket=pulseaudio
+  # Only the folders the app saves into.
+  - --filesystem=xdg-download/OpenVysor:create
+  - --filesystem=xdg-pictures/OpenVysor:create
+  - --filesystem=xdg-videos/OpenVysor:create
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/openvysor/cargo
+    CARGO_NET_OFFLINE: 'true'
+modules:
+  - name: openvysor
+    buildsystem: simple
+    build-commands:
+      - cargo build --release --locked --offline --manifest-path native/Cargo.toml
+      - install -Dm755 native/target/release/openvysor-native ${FLATPAK_DEST}/bin/openvysor
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.png ${FLATPAK_DEST}/share/icons/hicolor/256x256/apps/${FLATPAK_ID}.png
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 packaging/flatpak/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 -t ${FLATPAK_DEST}/share/licenses/${FLATPAK_ID} LICENSE NOTICE native/resources/scrcpy-LICENSE.txt
+          native/resources/openh264-LICENSE.txt
+    sources:
+      # The local checkout. A Flathub submission uses a `git` source with a tag and commit.
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - native/target
+          - node_modules
+          - dist
+          - dist-release
+          - src-tauri/target
+          - .flatpak-builder
+          - flatpak-build
+      - cargo-sources.json

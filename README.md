@@ -12,6 +12,7 @@ One small native Rust app. No account, no cloud, no root.
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-3ddc97)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-informational)
 
+[বাংলা](README.bn.md) ·
 [**Website**](https://sahinurdev.github.io/OpenVysor/) ·
 [**Download**](https://github.com/SahinurDEV/OpenVysor/releases) ·
 [**Documentation**](https://sahinurdev.github.io/OpenVysor/docs.html) ·
@@ -52,8 +53,8 @@ One small native Rust app. No account, no cloud, no root.
 | Phone sound on your computer | 🧪 Written, being tested |
 | Workspaces, per-app quality and remembered positions | 🧪 Written, being tested |
 | Key mapping for games | 🧪 Written, being tested |
-| File browser with download and upload | 🧪 Written, being tested |
-| Phone notifications (optional, read-only) | 🧪 Written, being tested |
+| File browser with sizes, filter, download and upload | 🧪 Listing confirmed on a real phone; transfers being tested |
+| Phone notifications (optional, read-only) | 🧪 Reading confirmed on a real phone; page being tested |
 | Tray icon and global shortcut (Windows and macOS) | 🧪 Written, being tested |
 
 The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
@@ -72,12 +73,12 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 | --- | --- |
 | Windows x64 | `-setup.exe` (installer with uninstaller), `.exe` (portable), `.zip` |
 | macOS, Apple Silicon and Intel | `.dmg`, `.zip` |
-| Linux x64 | `.deb`, `.tar.gz` |
+| Linux x64 | `.deb`, `.tar.gz`, or build the [Flatpak](packaging/flatpak/README.md) |
 
 ## Quick start
 
-You need a phone with **USB debugging** turned on. On Windows and macOS, the app can install
-Android's `adb` tool for you with one click. To install it yourself instead:
+You need a phone with **USB debugging** turned on. On Windows, macOS and Linux x64, the app can
+install Android's `adb` tool for you with one click. To install it yourself instead:
 
 | Computer | Install adb |
 | --- | --- |

@@ -108,12 +108,11 @@ impl Video {
                 Err(error) => *self.ended_recording.lock().unwrap() = Some(Err(error)),
             }
         }
-        if let Recording::Active(recorder) = &mut *recording {
-            if let Err(error) = recorder.add_frame(pts, key_frame, data) {
+        if let Recording::Active(recorder) = &mut *recording
+            && let Err(error) = recorder.add_frame(pts, key_frame, data) {
                 *recording = Recording::Idle;
                 *self.ended_recording.lock().unwrap() = Some(Err(error));
             }
-        }
     }
 }
 
@@ -137,8 +136,7 @@ fn decode_loop(packets: Receiver<Vec<u8>>, video: Arc<Video>, repaint: Repaint) 
     let mut waiting = false;
     let mut queued = None;
 
-    loop {
-        let Some(packet) = queued.take().or_else(|| packets.recv().ok()) else { break };
+    while let Some(packet) = queued.take().or_else(|| packets.recv().ok()) {
         let Some((&kind, _)) = packet.split_first() else { continue };
         let Some(payload) = packet.get(PAYLOAD_OFFSET..) else { continue };
         let pts = u64::from_be_bytes(packet[1..PAYLOAD_OFFSET].try_into().unwrap());
@@ -191,7 +189,7 @@ fn decode_loop(packets: Receiver<Vec<u8>>, video: Arc<Video>, repaint: Repaint) 
 /// How many video pixels make one painted pixel, never showing less than the
 /// window can display. Zero means the window size is not known yet.
 fn picture_step(video_long_side: u32, display_long_side: u32) -> usize {
-    if display_long_side == 0 { 1 } else { (video_long_side / display_long_side).max(1) as usize }
+    video_long_side.checked_div(display_long_side).map_or(1, |step| step.max(1) as usize)
 }
 
 /// Builds the sink a session writes to. Audio goes to `audio` when it is set.

@@ -15,6 +15,9 @@
   works on Android 10 and older.
 - The IP address tab lists phones found on the network, and addresses that worked before.
   Those addresses are tried again when the app starts, until you choose Disconnect.
+- A Windows installer, `OpenVysor-windows-x64-setup.exe`. It needs no administrator rights,
+  adds Start menu and optional desktop shortcuts, and an uninstaller that appears in
+  Settings → Apps. The uninstaller can also remove settings and the downloaded ADB.
 
 ### Changed
 
@@ -31,6 +34,19 @@
   now sent when the window opens.
 - Use over Wi-Fi gives up after about 20 seconds when the phone cannot be reached, instead of
   several minutes, and puts the phone back in USB mode.
+- A phone window no longer stays on "Connecting…" forever when the stream ends while it starts,
+  for example when the phone cannot encode at the chosen resolution. It now shows the reason and
+  a Reconnect button, and reconnecting works.
+- Two quick reconnects no longer race each other into a "session exists" error.
+- A phone that does not answer the details request no longer slows down noticing other phones
+  being plugged in or unplugged.
+- If adb is moved or deleted while the app runs, the app looks for it again instead of failing
+  until restarted.
+- Phone sound works on outputs that use integer samples, common on Linux.
+- ADB unzipped by hand with an extra folder level, such as `platform-tools-latest-windows`, is
+  now found, and no restart is needed after unzipping it.
+- The Windows build, testing and architecture documents describe the native app instead of the
+  old Tauri version.
 
 ## 0.3.1
 

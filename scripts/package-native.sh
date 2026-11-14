@@ -68,11 +68,36 @@ build_dmg() {
   rm -rf "$folder"
 }
 
+# The setup program with Start menu shortcuts and an uninstaller. MAKENSIS can point
+# at makensis.exe when it is not on the PATH.
+build_installer() {
+  local makensis="${MAKENSIS:-}"
+  if [ -z "$makensis" ]; then
+    makensis="$(command -v makensis || true)"
+  fi
+  if [ -z "$makensis" ] && [ -x "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
+    makensis="/c/Program Files (x86)/NSIS/makensis.exe"
+  fi
+  if [ -z "$makensis" ]; then
+    echo "makensis not found; install NSIS or set MAKENSIS" >&2
+    exit 1
+  fi
+  # makensis is a Windows program, so it gets Windows paths.
+  local source="$built.exe" target="$out/$name-setup.exe" script="packaging/windows/installer.nsi"
+  if command -v cygpath >/dev/null; then
+    source="$(cygpath -w "$source")"
+    target="$(cygpath -w "$target")"
+    script="$(cygpath -w "$script")"
+  fi
+  "$makensis" -V2 "-DVERSION=$version" "-DSOURCE=$source" "-DOUTFILE=$target" "$script"
+}
+
 case "$platform" in
   windows-*)
     cp "$built.exe" "$stage/OpenVysor.exe"
     cp "$built.exe" "$out/$name.exe"
     (cd "$out" && 7z a -tzip "$name.zip" "$name" >/dev/null)
+    build_installer
     ;;
   linux-*)
     cp native/resources/openh264-LICENSE.txt "$stage/"

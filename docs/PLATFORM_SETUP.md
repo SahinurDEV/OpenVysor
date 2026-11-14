@@ -9,7 +9,12 @@ Real-device status for each platform is in [FEATURE_STATUS.md](FEATURE_STATUS.md
 
 ## Windows 10 and 11
 
-1. Run `OpenVysor-windows-x64.exe`. It's portable, so keep it anywhere. The `.zip` holds the same app with its license files.
+1. Run `OpenVysor-windows-x64-setup.exe` and follow the steps. It installs for your user only,
+   so it needs no administrator rights, into `%LOCALAPPDATA%\Programs\OpenVysor`. It adds a
+   Start menu shortcut and, if you tick it, a desktop shortcut.
+
+   If you'd rather not install anything, `OpenVysor-windows-x64.exe` is the same app as a
+   single portable file. The `.zip` holds that file with its license files.
 2. If the app asks, choose **Install ADB**. To install it yourself instead, download
    [SDK Platform-Tools for Windows](https://developer.android.com/tools/releases/platform-tools)
    and unzip it into `%LOCALAPPDATA%\OpenVysor`, so that `adb.exe` ends up in
@@ -17,6 +22,20 @@ Real-device status for each platform is in [FEATURE_STATUS.md](FEATURE_STATUS.md
    fails with a 404, because it points at a file Google no longer serves.
 
 The app is not signed, so SmartScreen may warn. Choose **More info**, then **Run anyway**.
+
+### Uninstalling on Windows
+
+Open **Settings → Apps → Installed apps**, find **OpenVysor**, and choose **Uninstall**. You can
+also run **Uninstall OpenVysor** in the install folder. The uninstaller closes the app first.
+
+Your settings, workspaces, key mappings and the ADB copy the app downloaded are kept, so a
+later reinstall picks up where you left off. Tick **Settings and downloaded ADB** in the
+uninstaller to delete them too. Screenshots and recordings in your Pictures and Videos folders
+are never deleted.
+
+For a silent uninstall, run `"%LOCALAPPDATA%\Programs\OpenVysor\Uninstall OpenVysor.exe" /S`.
+For the portable `.exe`, delete the file, and `%LOCALAPPDATA%\OpenVysor` if you want the
+settings gone too.
 
 ## macOS 11 or later
 

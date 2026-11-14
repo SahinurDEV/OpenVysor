@@ -7,17 +7,18 @@
 ## Automated tests (no hardware)
 
 ```powershell
-pnpm exec tsc --noEmit
-pnpm exec vitest run            # 24 tests: input mapping, H.264 config, stores, transfer helpers
-cd src-tauri; cargo test --lib  # 43 tests: parsing, wire format, options, Job Object, clipboard
+cd native
+cargo test     # 92 tests: parsing, wire format, options, Job Object, clipboard, recording, audio
+cargo clippy --all-targets
 ```
 
-These use mocks or pure functions, and say nothing about real-device behaviour.
+These use mocks or pure functions, and say nothing about real-device behaviour. CI runs
+`cargo test` on Windows, Linux and macOS.
 
-## Real-device test (Rust backend)
+## Real-device test (native app)
 
 ```powershell
-cd src-tauri
+cd native
 cargo test --test real_device -- --ignored --nocapture --test-threads=1
 ```
 
@@ -35,6 +36,25 @@ recent motion events: 2, age=582ms and 574ms
 
 An earlier 5-second run measured 156 delta frames, about 31 FPS, on an idle lock screen.
 Android only encodes when the screen changes, so this is not a maximum frame rate.
+
+## Release check for 0.4.0 (native app)
+
+Run on 2026-11-14 with a Nothing A059 on Android 16 over USB.
+
+| Check | Result |
+| --- | --- |
+| `cargo test` and `cargo clippy --all-targets` | 92 passed, no warnings |
+| Real-device tests, release build | Both passed: picture after about 1 s, a tap on 7 changed Calculator, no tunnel or server left on the phone |
+| Installer, silent (`/S`) | Installed to `%LOCALAPPDATA%\Programs\OpenVysor` without an administrator prompt; Start menu and desktop shortcuts and the Installed apps entry created; the installed app opened |
+| Uninstaller, silent, with the app open | Closed the app; removed the program, shortcuts and Installed apps entry; kept the settings |
+
+Not covered: the installer's pages clicked by hand, the uninstaller's option that deletes
+settings, and the phone window's reconnect and "stream ended while starting" paths through the UI.
+
+## Earlier Tauri version
+
+The two sections below tested the earlier Tauri and React app in `src-tauri/` and `src/`. The
+scripts drive WebView2, so they do not work with the native app.
 
 ## End-to-end test (packaged app)
 

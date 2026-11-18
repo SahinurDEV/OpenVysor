@@ -136,6 +136,14 @@ case "$platform" in
   <key>CFBundleVersion</key><string>$version</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>OpenVysor finds and connects to Android phones on your Wi-Fi for wireless mirroring.</string>
+  <key>NSBonjourServices</key>
+  <array>
+    <string>_adb-tls-pairing._tcp</string>
+    <string>_adb-tls-connect._tcp</string>
+    <string>_adb._tcp</string>
+  </array>
 </dict>
 </plist>
 PLIST

@@ -10,6 +10,14 @@
 - The release workflow signs and notarizes the macOS builds when Developer ID secrets are
   set, so the `.dmg` opens with no warning at all.
 
+### Fixed
+
+- macOS: Wi-Fi pairing by QR code, pairing code or IP address stayed on "Waiting for the
+  phone" or failed with "No route to host". macOS silently blocked adb from the local
+  network because the app never asked for it. OpenVysor now declares Local Network use and
+  triggers the macOS "Allow" prompt itself, and the error explains how to turn access on in
+  System Settings → Privacy & Security → Local Network.
+
 ## 0.5.0
 
 ### Added

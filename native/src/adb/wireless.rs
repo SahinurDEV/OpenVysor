@@ -63,7 +63,33 @@ pub fn check_connect_output(output: &str) -> Result<String> {
     if text.starts_with("connected to") || text.starts_with("already connected") {
         Ok(text.to_string())
     } else {
-        Err(AppError::AdbFailed(text.to_string()))
+        Err(AppError::AdbFailed(explain_failure(text)))
+    }
+}
+
+/// macOS reports "No route to host" when Local Network access is turned off for the
+/// app, even though the phone is reachable, so say how to turn it on.
+fn explain_failure(text: &str) -> String {
+    if cfg!(target_os = "macos") && text.contains("No route to host") {
+        format!(
+            "{text}. macOS is blocking OpenVysor from the local network: turn on OpenVysor in \
+             System Settings → Privacy & Security → Local Network, then quit and reopen it."
+        )
+    } else {
+        text.to_string()
+    }
+}
+
+/// On macOS, Local Network access belongs to the app, and the prompt that grants it
+/// only appears when the app itself reaches a device on the network. The adb server
+/// runs in the background, where macOS blocks it silently with "No route to host",
+/// so touch the phone from here first. Only a numeric address is probed.
+fn request_local_network(address: &str) {
+    if !cfg!(target_os = "macos") {
+        return;
+    }
+    if let Ok(socket) = address.parse::<SocketAddr>() {
+        let _ = TcpStream::connect_timeout(&socket, PROBE_TIMEOUT);
     }
 }
 
@@ -72,11 +98,12 @@ pub fn pair(adb: &Adb, address: &str, code: &str) -> Result<()> {
     let code: String = code.split_whitespace().collect();
     validate_address(&address)?;
     validate_secret(&code)?;
+    request_local_network(&address);
     let output = adb.run_text(&["pair", &address, &code], WIRELESS_TIMEOUT)?;
     if output.contains("Successfully paired") {
         Ok(())
     } else {
-        Err(AppError::AdbFailed(output.trim().to_string()))
+        Err(AppError::AdbFailed(explain_failure(output.trim())))
     }
 }
 
@@ -84,6 +111,7 @@ pub fn pair(adb: &Adb, address: &str, code: &str) -> Result<()> {
 pub fn connect(adb: &Adb, address: &str) -> Result<String> {
     let address = normalize_address(address);
     validate_address(&address)?;
+    request_local_network(&address);
     check_connect_output(&adb.run_text(&["connect", &address], WIRELESS_TIMEOUT)?)?;
     Ok(address)
 }

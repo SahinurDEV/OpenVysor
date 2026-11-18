@@ -46,7 +46,11 @@ if [ ! -w "$dest" ]; then
   mkdir -p "$dest"
 fi
 
-osascript -e 'quit app "OpenVysor"' >/dev/null 2>&1 || true
+# Close a running copy first, and wait for it, or reopening the update fails.
+if pgrep -xq OpenVysor; then
+  osascript -e 'quit app "OpenVysor"' >/dev/null 2>&1 || true
+  for _ in $(seq 1 20); do pgrep -xq OpenVysor || break; sleep 0.5; done
+fi
 rm -rf "$dest/OpenVysor.app"
 ditto "$app" "$dest/OpenVysor.app"
 xattr -dr com.apple.quarantine "$dest/OpenVysor.app" 2>/dev/null || true

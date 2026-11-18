@@ -72,8 +72,14 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 | Computer | Formats |
 | --- | --- |
 | Windows x64 | `-setup.exe` (installer with uninstaller), `.exe` (portable), `.zip` |
-| macOS, Apple Silicon and Intel | `.dmg`, `.zip` |
+| macOS, Apple Silicon and Intel | `.dmg`, `.zip`, or the one-line installer below |
 | Linux x64 | `.deb`, `.tar.gz`, or build the [Flatpak](packaging/flatpak/README.md) |
+
+On macOS, this installs or updates the app with no "could not verify" prompt:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/scripts/install-macos.sh | bash
+```
 
 ## Quick start
 

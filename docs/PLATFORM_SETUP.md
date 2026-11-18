@@ -40,9 +40,20 @@ settings gone too.
 
 ## macOS 11 or later
 
+The easiest way is one line in Terminal. It picks the right build for your Mac, checks it
+against the release's `SHA256SUMS.txt`, puts it in Applications and opens it, with no
+security prompt:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/scripts/install-macos.sh | bash
+```
+
+Run it again to update. To install by hand instead:
+
 1. Open `OpenVysor-macos-arm64.dmg` (Apple Silicon) or `OpenVysor-macos-x64.dmg` (Intel), and drag `OpenVysor.app` to Applications. A `.zip` of the app is also available.
-2. The app is not notarized, so macOS blocks the first launch. Try opening it once, then go to
-   **System Settings → Privacy & Security** and choose **Open Anyway**. Or run this in Terminal:
+2. The app is not notarized yet, so macOS says "Apple could not verify OpenVysor". Choose
+   **Done**, then go to **System Settings → Privacy & Security**, scroll down and choose
+   **Open Anyway**. Or run this in Terminal:
 
    ```sh
    xattr -dr com.apple.quarantine /Applications/OpenVysor.app

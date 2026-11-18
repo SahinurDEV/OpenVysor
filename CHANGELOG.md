@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1
+
+### Added
+
+- A one-line macOS installer, `scripts/install-macos.sh`. It downloads the right build,
+  checks its SHA-256 and installs it to Applications, and macOS opens it without the
+  "Apple could not verify" prompt that a browser download shows.
+- The release workflow signs and notarizes the macOS builds when Developer ID secrets are
+  set, so the `.dmg` opens with no warning at all.
+
 ## 0.5.0
 
 ### Added

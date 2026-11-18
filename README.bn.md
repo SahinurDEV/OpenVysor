@@ -56,7 +56,14 @@ Rust-এ লেখা একটিমাত্র ছোট নেটিভ অ�
 আর পরে **Settings → Apps → Installed apps** থেকে মুছে ফেলা যায়। অ্যাপটি এখনো সাইন করা নয়,
 তাই সতর্কবার্তা এলে **More info**, তারপর **Run anyway** চাপুন।
 
-**Mac:** অ্যাপটি Applications-এ টেনে আনুন, একবার খোলার চেষ্টা করুন, তারপর
+**Mac:** সবচেয়ে সহজ উপায় হলো Terminal-এ এই এক লাইন চালানো। এটি আপনার Mac-এর জন্য সঠিক
+বিল্ড ডাউনলোড করে, যাচাই করে Applications-এ বসিয়ে খুলে দেয়, কোনো সতর্কবার্তা ছাড়াই:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/scripts/install-macos.sh | bash
+```
+
+`.dmg` দিয়ে ইনস্টল করলে অ্যাপটি Applications-এ টেনে আনুন, একবার খোলার চেষ্টা করুন, তারপর
 **System Settings → Privacy & Security → Open Anyway** চাপুন।
 
 বিস্তারিত আছে [ইনস্টল নোটে](docs/PLATFORM_SETUP.md)।

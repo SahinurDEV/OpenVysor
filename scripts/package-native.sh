@@ -139,10 +139,36 @@ case "$platform" in
 </dict>
 </plist>
 PLIST
-    # Apple Silicon refuses to run a bundle with no signature at all.
-    codesign --force --deep --sign - "$stage/OpenVysor.app"
+    # With MACOS_SIGN_IDENTITY (a "Developer ID Application" certificate in the keychain)
+    # the app is signed for Gatekeeper; with APPLE_ID, APPLE_TEAM_ID and
+    # APPLE_APP_PASSWORD as well, Apple notarizes it so macOS opens it with no warning.
+    # Without them it gets an ad-hoc signature, since Apple Silicon refuses to run a
+    # bundle with no signature at all.
+    identity="${MACOS_SIGN_IDENTITY:-}"
+    if [ -n "$identity" ]; then
+      codesign --force --options runtime --timestamp --sign "$identity" "$stage/OpenVysor.app"
+    else
+      codesign --force --deep --sign - "$stage/OpenVysor.app"
+    fi
+    notarize=""
+    if [ -n "$identity" ] && [ -n "${APPLE_ID:-}" ] && [ -n "${APPLE_TEAM_ID:-}" ] && [ -n "${APPLE_APP_PASSWORD:-}" ]; then
+      notarize=1
+      ditto -c -k --keepParent "$stage/OpenVysor.app" "$out/notarize.zip"
+      xcrun notarytool submit "$out/notarize.zip" --wait \
+        --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+      rm "$out/notarize.zip"
+      xcrun stapler staple "$stage/OpenVysor.app"
+    fi
     (cd "$out" && ditto -c -k --keepParent "$name" "$name.zip")
     build_dmg
+    if [ -n "$identity" ]; then
+      codesign --force --timestamp --sign "$identity" "$out/$name.dmg"
+    fi
+    if [ -n "$notarize" ]; then
+      xcrun notarytool submit "$out/$name.dmg" --wait \
+        --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+      xcrun stapler staple "$out/$name.dmg"
+    fi
     ;;
   *)
     echo "unknown platform: $platform" >&2

@@ -124,8 +124,8 @@
         <div class="callout warn" style="margin-top:0"><p>This is a preview build that hasn't been tried on a real Mac with a phone yet.</p></div>
         <ol class="steps">
           <li>Install ADB with Homebrew.<pre class="term"><code>brew install android-platform-tools</code></pre></li>
-          <li><a href="./#install">Download the .dmg</a> for your Mac, open it and drag <code>OpenVysor.app</code> to Applications.</li>
-          <li>The app isn't notarized, so allow its first launch:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
+          <li>Install OpenVysor with one line. It picks the right build, checks it, and opens it with no security prompt:<pre class="term"><code>curl -fsSL https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/scripts/install-macos.sh | bash</code></pre></li>
+          <li>Or <a href="./#install">download the .dmg</a>, drag <code>OpenVysor.app</code> to Applications, and allow its first launch, since it isn't notarized yet:<pre class="term"><code>xattr -dr com.apple.quarantine /Applications/OpenVysor.app</code></pre></li>
         </ol>
       </div>
       <div class="panel" role="tabpanel" id="dp-lin" aria-labelledby="d-lin" hidden>

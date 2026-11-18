@@ -282,6 +282,9 @@
         </div>
         <div class="panel" role="tabpanel" id="p-mac" aria-labelledby="t-mac" hidden>
           <p class="preview"><span class="badge testing">Preview</span> Builds and passes its tests on macOS, but hasn't been tried on a real Mac with a phone yet.</p>
+          <p><strong>Easiest:</strong> paste this into Terminal. It installs the right build for your Mac, checks it, and opens it with no security prompt. Run it again to update.</p>
+          <pre class="term"><code>curl -fsSL https://raw.githubusercontent.com/SahinurDEV/OpenVysor/main/scripts/install-macos.sh | bash</code></pre>
+          <p class="fine">Or download a package:</p>
           <div class="dls">
           <div class="dl" data-key="mac-arm-dmg">
             <div><b>Apple Silicon (.dmg)</b><span class="rec">Recommended for you</span><small>M-series Macs. Open it and drag the app to Applications.</small></div>
@@ -301,7 +304,7 @@
           </div>
           </div>
           <ol class="steps">
-            <li>Drag the app to Applications and try opening it once. It isn't notarized yet, so macOS stops it. Then choose <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>.</li>
+            <li>If you downloaded a package, drag the app to Applications and try opening it once. It isn't notarized yet, so macOS says it "could not verify" OpenVysor. Choose <strong>Done</strong>, then <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>. The Terminal command above skips this step.</li>
             <li>If the app asks, choose <strong>Install ADB</strong>. It downloads Google's official tools for you.</li>
           </ol>
         </div>

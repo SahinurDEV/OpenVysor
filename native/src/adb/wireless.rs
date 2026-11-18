@@ -41,6 +41,17 @@ pub struct MdnsService {
     pub address: String,
 }
 
+impl MdnsService {
+    /// A phone showing "Pair device with pairing code", waiting for its code.
+    pub fn is_pairing(&self) -> bool {
+        self.service.contains("adb-tls-pairing")
+    }
+
+    pub fn host(&self) -> &str {
+        host_of(&self.address)
+    }
+}
+
 /// Parses the output of `adb mdns services`.
 pub fn parse_mdns_services(output: &str) -> Vec<MdnsService> {
     output
@@ -120,19 +131,27 @@ pub fn disconnect(adb: &Adb, serial: &str) -> Result<()> {
     adb.run_text(&["disconnect", serial], WIRELESS_TIMEOUT).map(|_| ())
 }
 
-fn host_of(address: &str) -> &str {
+pub fn host_of(address: &str) -> &str {
     address.rsplit_once(':').map_or(address, |(host, _)| host)
 }
 
-/// Phones on the network that accept a connection: paired phones with Wireless
-/// debugging on, and phones switched to Wi-Fi with `adb tcpip`.
+/// Phones on the network: paired phones with Wireless debugging on, phones switched
+/// to Wi-Fi with `adb tcpip`, and phones waiting on "Pair device with pairing code".
 pub fn discover(adb: &Adb) -> Result<Vec<MdnsService>> {
     let services = parse_mdns_services(&adb.run_text(&["mdns", "services"], WIRELESS_TIMEOUT)?);
-    Ok(services
-        .into_iter()
-        .filter(|entry| entry.service.contains("adb-tls-connect") || entry.service.starts_with("_adb._tcp"))
-        .filter(|entry| validate_address(&entry.address).is_ok())
-        .collect())
+    let mut found: Vec<MdnsService> = Vec::new();
+    for entry in services {
+        let wanted = entry.service.contains("adb-tls-connect") || entry.service.starts_with("_adb._tcp") || entry.is_pairing();
+        // Emulators announce their private 10.0.2.x address, unreachable from here,
+        // and are already listed through their own connection.
+        let emulator = entry.name.to_ascii_uppercase().contains("EMULATOR");
+        let wanted = wanted && !emulator;
+        // A phone can be announced on several network interfaces; list it once.
+        if wanted && validate_address(&entry.address).is_ok() && !found.iter().any(|seen| seen.address == entry.address) {
+            found.push(entry);
+        }
+    }
+    Ok(found)
 }
 
 /// The connect port differs from the pairing port, so it is found on the network.

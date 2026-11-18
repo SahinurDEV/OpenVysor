@@ -9,6 +9,10 @@
   "Apple could not verify" prompt that a browser download shows.
 - The release workflow signs and notarizes the macOS builds when Developer ID secrets are
   set, so the `.dmg` opens with no warning at all.
+- **Phones on this Wi-Fi** on the Devices page lists phones with Wireless debugging on,
+  with one click to connect. A phone showing "Pair device with pairing code" appears with a
+  box for its code, so there is no IP address or port to type. Phones connected over Wi-Fi
+  before reconnect by themselves when they appear, even after their port changes.
 
 ### Fixed
 
@@ -17,6 +21,10 @@
   network because the app never asked for it. OpenVysor now declares Local Network use and
   triggers the macOS "Allow" prompt itself, and the error explains how to turn access on in
   System Settings → Privacy & Security → Local Network.
+- The QR code page now says to scan with the scanner inside Wireless debugging. The Camera
+  app and Google Lens read the code as a Wi-Fi network named "studio-…" and cannot pair.
+- Windows and Linux: the adb server OpenVysor starts always uses adb's built-in mDNS, so
+  Wi-Fi phones are found without Apple's Bonjour service installed.
 
 ## 0.5.0
 

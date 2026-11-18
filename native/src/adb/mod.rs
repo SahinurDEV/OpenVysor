@@ -29,6 +29,11 @@ pub fn hidden_command(program: &Path) -> Command {
         use std::os::windows::process::CommandExt;
         command.creation_flags(CREATE_NO_WINDOW);
     }
+    // Wi-Fi phones are found over mDNS. Outside macOS, adb's own mDNS client is the one
+    // that works without Apple's Bonjour service installed, so the adb server this app
+    // starts always uses it.
+    #[cfg(not(target_os = "macos"))]
+    command.env("ADB_MDNS_OPENSCREEN", "1");
     command
 }
 

@@ -59,7 +59,11 @@ Run it again to update. To install by hand instead:
    xattr -dr com.apple.quarantine /Applications/OpenVysor.app
    ```
 
-3. If the app asks, choose **Install ADB**. To install it yourself instead:
+3. To use a phone over Wi-Fi, macOS asks to let OpenVysor find devices on your local
+   network. Choose **Allow**. If you chose otherwise, or Wi-Fi connections fail with
+   "No route to host", turn on OpenVysor in **System Settings → Privacy & Security → Local
+   Network**.
+4. If the app asks, choose **Install ADB**. To install it yourself instead:
    `brew install android-platform-tools`
 
 ## Linux x64
@@ -103,3 +107,18 @@ git push origin v0.3.1
 
 GitHub Actions builds every platform and publishes the release with a `SHA256SUMS.txt`.
 A tag with a suffix, such as `v0.3.1-rc.1`, is published as a pre-release.
+
+## Wi-Fi
+
+Turn on **Settings → Developer options → Wireless debugging** on the phone, on the same Wi-Fi
+as the computer. Then on the **Devices** page:
+
+- **Paired before:** the phone shows under **Phones on this Wi-Fi** and connects by itself.
+- **New phone:** on the phone, tap **Pair device with pairing code**. It appears under
+  **Phones on this Wi-Fi**; type the 6-digit code and choose **Pair**. Or choose
+  **Connect over Wi-Fi → QR code** and scan it with **Pair device with QR code** on the phone.
+  The Camera app and Google Lens can't pair: they read the code as a Wi-Fi network.
+- **Phone on USB:** choose **Use over Wi-Fi** on its card, then unplug it.
+
+Guest and office networks often block devices from seeing each other. On Windows, allow adb
+through the firewall when asked.

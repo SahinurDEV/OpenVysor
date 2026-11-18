@@ -60,8 +60,11 @@ const REMEMBERED_ADDRESSES: usize = 5;
 /// How long the startup reconnect waits for adb to be found.
 const RECONNECT_WAIT: Duration = Duration::from_secs(30);
 
+/// Wireless debugging picks a new port each time it is turned on, so an older
+/// address of the same phone is replaced rather than kept beside it.
 fn remember_address(addresses: &mut Vec<String>, address: &str) {
-    addresses.retain(|existing| existing != address);
+    let host = wireless::host_of(address);
+    addresses.retain(|existing| wireless::host_of(existing) != host);
     addresses.insert(0, address.to_string());
     addresses.truncate(REMEMBERED_ADDRESSES);
 }
@@ -162,13 +165,20 @@ impl Core {
         });
     }
 
+    /// Whether a phone at this IP address was connected over Wi-Fi before and not
+    /// disconnected by the user since, so it may be reconnected without asking.
+    pub fn knows_wireless_host(&self, host: &str) -> bool {
+        self.settings.lock().unwrap().wireless_addresses.iter().any(|address| wireless::host_of(address) == host)
+    }
+
     pub fn remember_wireless(&self, address: &str) {
         self.update_settings(|settings| remember_address(&mut settings.wireless_addresses, address));
     }
 
     /// A phone the user disconnected is not reconnected at the next start.
     pub fn forget_wireless(&self, address: &str) {
-        self.update_settings(|settings| settings.wireless_addresses.retain(|existing| existing != address));
+        let host = wireless::host_of(address).to_string();
+        self.update_settings(|settings| settings.wireless_addresses.retain(|existing| wireless::host_of(existing) != host));
     }
 
     pub fn server_path(&self) -> Result<PathBuf> {
@@ -277,6 +287,14 @@ impl Core {
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_new_port_replaces_the_old_address_of_the_same_phone() {
+        let mut addresses = vec!["192.168.1.5:37011".to_string(), "192.168.1.9:5555".to_string()];
+        remember_address(&mut addresses, "192.168.1.5:41022");
+        assert_eq!(addresses, ["192.168.1.5:41022", "192.168.1.9:5555"]);
+    }
+
     use super::*;
 
     #[test]

@@ -252,16 +252,16 @@
 
     <section id="status">
       <h2>What is tested</h2>
-      <p>Testing so far has used one phone (Nothing A059, Android 16).</p>
+      <p>Testing so far has used two phones on Android 16: a Nothing A059 and a Samsung Galaxy A54.</p>
       <div class="table-box"><table>
         <tr><th>Platform</th><th>Builds and unit tests</th><th>App opens</th><th>Mirrors a real phone</th></tr>
-        <tr><td>Windows x64</td><td>Yes</td><td>Yes</td><td>Yes, for app windows</td></tr>
+        <tr><td>Windows x64</td><td>Yes</td><td>Yes</td><td>Yes, app windows and the whole phone</td></tr>
         <tr><td>Linux x64</td><td>Yes</td><td>Yes, on a virtual display</td><td>Not yet</td></tr>
         <tr><td>macOS</td><td>Yes, on GitHub Actions</td><td>Not yet</td><td>Not yet</td></tr>
       </table></div>
-      <p><strong>Confirmed on the phone:</strong> live video of an app in its own window, tapping with the mouse, the window toolbar and full screen, and a clean exit.</p>
-      <p><strong>Written, still being tested:</strong> whole-phone mirroring, dragging, scrolling, typing, rotation, automatic reconnection, clipboard sync, drag and drop, Wi-Fi pairing, phone sound and recording.</p>
-      <p><strong>Not done yet:</strong> hardware video decoding, an installer, code signing, sound in recordings and end-to-end latency measurements.</p>
+      <p><strong>Confirmed on the phone:</strong> live video of an app in its own window, whole-phone mirroring, tapping, dragging, scrolling and typing, right-click Back and middle-click Home, rotation, automatic reconnection, the window toolbar and full screen, clipboard sync, screenshots and MP4 recording, drag and drop for APKs and files, per-app quality and window positions, workspaces, key mapping, the file browser's upload, filter and download, the Notifications page, <kbd>Alt</kbd> + arrows between windows, and a clean exit.</p>
+      <p><strong>Written, still being tested:</strong> Wi-Fi pairing, which needs the phone and computer on one network; phone sound, which reaches the computer but has not yet been checked by ear; and the tray icon and global shortcut, which register on Windows but whose key press has not been tested.</p>
+      <p><strong>Not done yet:</strong> hardware video decoding, code signing, sound in recordings and end-to-end latency measurements.</p>
     </section>
 
     <section id="architecture">

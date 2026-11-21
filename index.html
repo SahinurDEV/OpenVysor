@@ -75,7 +75,7 @@
           "name": "Can I control my phone with a mouse and keyboard?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, that is the point of the app. Clicking is confirmed on a real phone. Dragging, scrolling and typing are written and still being tested."
+            "text": "Yes, that is the point of the app. Clicking, dragging, scrolling, typing, right-click Back and middle-click Home are all confirmed on a real phone."
           }
         },
         {
@@ -239,9 +239,9 @@
         <article class="cell wide reveal"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="2"/><rect x="13" y="4" width="8" height="16" rx="2"/></svg></div><h3>One app, one window</h3><p>Each app runs on its own virtual display, so you can keep several open side by side while the phone stays free.</p></article>
         <article class="cell wide reveal" style="--d:1"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v16l4.6-3.8 3 6.3 2.6-1.3-2.8-6.1H18z"/></svg></div><h3>Mouse control</h3><p>Click on the window and the phone responds. Right-click goes back, and the middle button goes home.</p></article>
         <article class="cell reveal"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 9a14 14 0 0 1 18 0M6.5 13a9 9 0 0 1 11 0M10 17a3.5 3.5 0 0 1 4 0"/></svg></div><h3>Wi-Fi pairing</h3><p>Scan a QR code on the phone, or use a pairing code or IP address.</p></article>
-        <article class="cell reveal" style="--d:1"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0-11L7.5 8.5M12 4l4.5 4.5M5 20h14"/></svg></div><h3>Drag and drop</h3><p>Drop an APK to install it, or any other file to send it to the phone.</p></article>
-        <article class="cell reveal" style="--d:2"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="3" width="11" height="14" rx="2"/><path d="M5 7v12a2 2 0 0 0 2 2h9"/></svg></div><h3>Clipboard sync</h3><p>Copy on one side and paste on the other. You choose when it's on.</p></article>
-        <article class="cell wide reveal"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg></div><h3>Recording and screenshots</h3><p>Save the screen to MP4 or PNG straight into your Videos and Pictures folders.</p></article>
+        <article class="cell reveal" style="--d:1"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0-11L7.5 8.5M12 4l4.5 4.5M5 20h14"/></svg></div><h3>Drag and drop</h3><p>Drop an APK to install it, or any other file to send it to the phone.</p></article>
+        <article class="cell reveal" style="--d:2"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="3" width="11" height="14" rx="2"/><path d="M5 7v12a2 2 0 0 0 2 2h9"/></svg></div><h3>Clipboard sync</h3><p>Copy on one side and paste on the other. You choose when it's on.</p></article>
+        <article class="cell wide reveal"><span class="badge">Tested</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor"/></svg></div><h3>Recording and screenshots</h3><p>Save the screen to MP4 or PNG straight into your Videos and Pictures folders.</p></article>
         <article class="cell wide reveal" style="--d:1"><span class="badge testing">Testing</span><div class="cell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg></div><h3>Phone sound on your computer</h3><p>Hear the phone through your speakers while you mirror the whole screen.</p></article>
       </div>
     </section>
@@ -334,7 +334,7 @@
       <div class="reveal">
         <p class="eyebrow">Status</p>
         <h2>What works today, plainly.</h2>
-        <p class="sub">OpenVysor is young, and testing so far has used one phone running Android 16.</p>
+        <p class="sub">OpenVysor is young. Testing so far has used two phones running Android 16, a Nothing Phone (3a) and a Samsung Galaxy A54.</p>
       </div>
       <div class="reveal">
         <div class="chips" role="group" aria-label="Filter by status">
@@ -348,17 +348,18 @@
           <li data-state="tested">Tapping on the phone with the mouse<span class="badge">Tested</span></li>
           <li data-state="tested">Phone-shaped windows, toolbar and full screen<span class="badge">Tested</span></li>
           <li data-state="tested">Clean exit with nothing left running<span class="badge">Tested</span></li>
-          <li data-state="testing">Whole-phone mirroring<span class="badge testing">Being tested</span></li>
-          <li data-state="testing">Dragging, scrolling, typing and rotation<span class="badge testing">Being tested</span></li>
-          <li data-state="testing">Reconnecting automatically<span class="badge testing">Being tested</span></li>
-          <li data-state="testing">Clipboard sync, and drag and drop<span class="badge testing">Being tested</span></li>
+          <li data-state="tested">Whole-phone mirroring, with mouse and keyboard<span class="badge">Tested</span></li>
+          <li data-state="tested">Dragging, scrolling, typing and rotation<span class="badge">Tested</span></li>
+          <li data-state="tested">Reconnecting automatically<span class="badge">Tested</span></li>
+          <li data-state="tested">Clipboard sync, and drag and drop for APKs and files<span class="badge">Tested</span></li>
           <li data-state="testing">Wi-Fi pairing and phone sound<span class="badge testing">Being tested</span></li>
-          <li data-state="testing">Recording to MP4<span class="badge testing">Being tested</span></li>
+          <li data-state="tested">Screenshots and recording to MP4<span class="badge">Tested</span></li>
           <li data-state="testing">macOS and Linux<span class="badge testing">Being tested</span></li>
-          <li data-state="testing">Workspaces, per-app quality and key mapping<span class="badge testing">In the next release</span></li>
-          <li data-state="testing">File browser and phone notifications<span class="badge testing">In the next release</span></li>
+          <li data-state="tested">Workspaces, per-app quality and key mapping<span class="badge">Tested</span></li>
+          <li data-state="tested">File browser and phone notifications<span class="badge">Tested</span></li>
+          <li data-state="testing">Tray icon and global shortcut<span class="badge testing">Being tested</span></li>
           <li data-state="planned">Hardware video decoding<span class="badge planned">Not done yet</span></li>
-          <li data-state="planned">Installer and code signing<span class="badge planned">Not done yet</span></li>
+          <li data-state="planned">Code signing<span class="badge planned">Not done yet</span></li>
           <li data-state="planned">Sound in recordings<span class="badge planned">Not done yet</span></li>
           <li data-state="planned">End-to-end latency measurements<span class="badge planned">Not done yet</span></li>
         </ul>
@@ -374,7 +375,7 @@
         <details class="q"><summary>Is OpenVysor free?</summary><p>Yes. It is free and open source under the Apache License 2.0, with no account and no paid tier.</p></details>
         <details class="q"><summary>Do I need to root my Android phone?</summary><p>No. You only need to turn on USB debugging in Developer options.</p></details>
         <details class="q"><summary>Does my phone screen go through the cloud?</summary><p>No. Video and input travel only between your phone and your computer, over USB or your own Wi-Fi.</p></details>
-        <details class="q"><summary>Can I control my phone with a mouse and keyboard?</summary><p>Yes, that is the point of the app. Clicking is confirmed on a real phone. Dragging, scrolling and typing are written and still being tested.</p></details>
+        <details class="q"><summary>Can I control my phone with a mouse and keyboard?</summary><p>Yes, that is the point of the app. Clicking, dragging, scrolling, typing, right-click Back and middle-click Home are all confirmed on a real phone.</p></details>
         <details class="q"><summary>Which computers does it run on?</summary><p>Windows 10 and 11 are ready to try. Preview builds for macOS and Linux pass their tests, and still need testing with a real phone.</p></details>
         <details class="q"><summary>Is OpenVysor related to Vysor or scrcpy?</summary><p>OpenVysor is an independent open-source alternative and is not affiliated with Vysor. It runs the open-source scrcpy-server on the phone for capture and input, with its own desktop client.</p></details>
       </div>

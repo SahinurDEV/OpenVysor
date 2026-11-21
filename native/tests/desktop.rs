@@ -38,7 +38,9 @@ fn tray_icon_and_global_shortcut_register() {
 fn showing_the_main_window_restores_and_focuses_it() {
     let ctx = Context::default();
     ctx.set_embed_viewports(false);
-    let output = ctx.run_ui(RawInput::default(), |_| tray::show_main_window(&ctx));
+    let mut output = ctx.run_ui(RawInput::default(), |_| tray::show_main_window(&ctx));
+    // Nothing draws this frame; debug builds panic if its texture updates are left unused.
+    output.textures_delta.clear();
     let commands = &output.viewport_output[&ViewportId::ROOT].commands;
     assert!(
         commands.contains(&ViewportCommand::Minimized(false)),

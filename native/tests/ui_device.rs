@@ -265,7 +265,9 @@ fn new_core(test: &str) -> (Context, Arc<Core>) {
 
 /// Remembers where each named button was drawn, from the frame's accessibility tree.
 /// A text field is remembered as "text field".
-fn collect_buttons(output: FullOutput, buttons: &mut Vec<(String, Rect)>) {
+fn collect_buttons(mut output: FullOutput, buttons: &mut Vec<(String, Rect)>) {
+    // Nothing draws these frames; debug builds panic if their texture updates are left unused.
+    output.textures_delta.clear();
     let Some(update) = output.platform_output.accesskit_update else {
         return;
     };

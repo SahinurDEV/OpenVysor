@@ -15,6 +15,13 @@ pub struct Tray {
     _hotkeys: Option<GlobalHotKeyManager>,
 }
 
+impl Tray {
+    /// Whether the global shortcut was registered. Another program may own it.
+    pub fn has_shortcut(&self) -> bool {
+        self._hotkeys.is_some()
+    }
+}
+
 pub fn show_main_window(ctx: &Context) {
     ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Minimized(false));
     ctx.send_viewport_cmd_to(ViewportId::ROOT, ViewportCommand::Focus);

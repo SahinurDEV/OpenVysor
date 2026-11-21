@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use eframe::egui::{Align, Context, Label, Layout, RichText, ScrollArea, Sense, Ui, Vec2, vec2};
+use eframe::egui::{Align, Context, Label, Layout, RichText, Role, ScrollArea, Sense, Ui, Vec2, WidgetInfo, vec2};
 
 use crate::adb::notifications::{self, PhoneNotification};
 use crate::mirroring::apps::validate_package;
@@ -110,17 +110,21 @@ impl NotificationsPage {
             for item in &items {
                 theme::card(ui, |ui| {
                     ui.allocate_ui_with_layout(vec2(ui.available_width(), 44.0), Layout::right_to_left(Align::Center), |ui| {
-                        if validate_package(&item.package).is_ok() && theme::button(ui, ButtonKind::Secondary, "Open app", true).clicked() {
-                            open = Some(item.package.clone());
+                        let label = app_label(&item.package);
+                        let heading = if item.title.is_empty() { label.clone() } else { item.title.clone() };
+                        if validate_package(&item.package).is_ok() {
+                            let button = theme::button(ui, ButtonKind::Secondary, "Open app", true);
+                            button.widget_info(|| WidgetInfo::labeled(Role::Button, true, format!("Open {heading}")));
+                            if button.clicked() {
+                                open = Some(item.package.clone());
+                            }
                         }
                         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                             let (rect, _) = ui.allocate_exact_size(Vec2::splat(36.0), Sense::hover());
-                            let label = app_label(&item.package);
                             theme::avatar(ui.painter(), rect.center(), 17.0, &label);
                             ui.vertical(|ui| {
                                 ui.spacing_mut().item_spacing.y = 1.0;
-                                let heading = if item.title.is_empty() { label.as_str() } else { item.title.as_str() };
-                                ui.add(Label::new(RichText::new(heading).font(semibold(14.0))).truncate());
+                                ui.add(Label::new(RichText::new(&heading).font(semibold(14.0))).truncate());
                                 ui.add(Label::new(RichText::new(&item.text).small().weak()).truncate());
                             });
                         });

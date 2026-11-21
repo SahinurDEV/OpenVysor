@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Dropping a file or APK on a phone window froze that window. Drops now install or send in
+  the background, as intended.
+- APKs from Android Studio's Run button were refused with `INSTALL_FAILED_TEST_ONLY`. They
+  now install.
+- Screen readers can now name every button in the app, each file browser row and Download
+  button, and each notification's Open button.
+
+### Tested
+
+- Every remaining "being tested" feature except Wi-Fi was run on a Samsung Galaxy A54 with
+  Android 16, through the real window code: whole-phone mouse and keyboard, dragging,
+  scrolling, rotation, automatic reconnection, drag and drop, per-app quality and position,
+  workspaces, key mapping, file browser transfers, the Notifications page, and
+  `Alt` + `Left`/`Right`. The tests are in `native/tests/ui_device.rs`; results are in
+  [docs/TESTING.md](docs/TESTING.md).
+
 ## 0.5.1
 
 ### Added

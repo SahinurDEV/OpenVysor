@@ -8,7 +8,7 @@
 
 ```powershell
 cd native
-cargo test     # 92 tests: parsing, wire format, options, Job Object, clipboard, recording, audio
+cargo test     # 101 tests: parsing, wire format, options, Job Object, clipboard, recording, audio
 cargo clippy --all-targets
 ```
 
@@ -36,6 +36,57 @@ recent motion events: 2, age=582ms and 574ms
 
 An earlier 5-second run measured 156 delta frames, about 31 FPS, on an idle lock screen.
 Android only encodes when the screen changes, so this is not a maximum frame rate.
+
+## Window tests on a real phone (native app)
+
+`native/tests/ui_device.rs` runs the real phone window code without showing it. It sends the
+same mouse, wheel, keyboard and file-drop events a person would, through `Phone::show`, finds
+toolbar buttons by their accessible names, and checks the result on the phone with
+`uiautomator` and `dumpsys`. Settings go to a temporary folder, never your own.
+
+```sh
+cd native
+OPENVYSOR_TEST_SERIAL=<serial> cargo test --release --test ui_device -- --ignored --nocapture --test-threads=1
+```
+
+The phone must be awake and unlocked. The tests open Calculator, Clock and Settings, type
+"wifi" into the Settings search box, rotate the screen and restore it, briefly drop the USB
+connection with `adb reconnect`, reinstall the phone's smallest single-APK app from its own copy,
+and post and remove one test notification. Files they send are deleted afterwards. Other phones'
+notifications are never printed.
+
+Last result, 2026-11-21, Samsung Galaxy A54 (SM-A546E) on Android 16 over USB: **11 passed**.
+
+| Test | Result |
+| --- | --- |
+| Click, typing, Backspace, right-click Back, middle-click Home, Recent apps and Home buttons | Calculator showed 7; the search box read "wifi", then "wif" |
+| Drag and wheel | Settings scrolled down by drag and wheel, and back up |
+| Rotation | The video went from 738×1600 to 1600×738, a tap still hit 7, and the settings were restored |
+| Automatic reconnection | Disconnected after 0.26 s; live again by itself after 2.1 s |
+| Dropping a file and an APK | The file reached Download; the APK, a test-only build, installed |
+| Per-app quality and position | Smooth streamed at 1280 and opened at the saved position; Sharp at the native 1600 |
+| Workspace | Calculator and Clock saved, closed, and both reopened live |
+| Key mapping | `G` on Calculator's 7, pressed twice, typed "77" |
+| File browser | Upload by drop, the filter box in a 111-item folder, and Download to the computer |
+| Notifications page | A new notification appeared after **Turn on** |
+| `Alt` + `Left`/`Right` | Each sent Focus to the other phone window |
+| Nothing left behind | No new server or tunnel on the phone after the window closed |
+
+Bugs found and fixed:
+- Dropping any file on a phone window froze it, because the window's state was locked twice.
+- APKs built by Android Studio's Run button were refused, as they are marked test-only. The
+  install now passes `-t`.
+- Custom buttons and file rows had no accessible names, so screen readers could not announce them.
+
+Not covered:
+- **Sound.** The sound test received 1.7 MB of audio, but it was silent: another running copy of
+  OpenVysor held the phone's audio capture. Rerun `sound_button_streams_phone_audio` with no
+  other copy mirroring that phone. It plays a 440 Hz tone (`tests/fixtures/tone.mp4`) in the
+  phone's own video player and expects it to arrive.
+- **Wi-Fi.** The computer and the phone were on separate networks.
+- **Tray and global shortcut.** `cargo test --test desktop -- --ignored` creates the tray icon
+  and registers `Ctrl+Shift+O`. It failed only because the installed app already held the
+  shortcut. Pressing the shortcut and clicking the tray were not tested.
 
 ## Release check for 0.5.0 (native app)
 

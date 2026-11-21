@@ -1,7 +1,7 @@
 # Feature Status
 
-Last updated 2026-11-11. "Device verified" means tested against a real phone (Nothing A059,
-Android 16). See [TESTING.md](TESTING.md) for evidence.
+Last updated 2026-11-21. "Device verified" means tested against a real phone: a Nothing A059
+or a Samsung Galaxy A54 (SM-A546E), both on Android 16. See [TESTING.md](TESTING.md) for evidence.
 
 | Priority | Feature | Status |
 | --- | --- | --- |
@@ -44,22 +44,25 @@ H.264 decoder for video. `adb` and scrcpy-server remain separate programs.
 | Mouse reaching the phone area | Observed in the app's log during manual use |
 | Phone window, drawn toolbar, full screen, close | Observed working in the running app |
 | Clean exit, no tunnel left behind | Verified |
-| Whole-phone mirroring | Picture device verified; mouse input in that window **not yet verified** |
-| Drag, wheel, typing, rotation, auto-resume | Written, **not yet verified** |
+| Whole-phone mirroring | Device verified on the Galaxy A54 through the window's own input code: a click on Calculator, typing and Backspace in a text field, right-click Back, middle-click Home, and the Recent apps and Home buttons |
+| Drag, wheel, typing, rotation, auto-resume | Device verified on the Galaxy A54: a drag and the wheel scrolled Settings both ways; the picture turned landscape and a tap still landed on the right key; after `adb reconnect` the window came back by itself in about 2 s |
 | Clipboard sync | Device verified both ways |
-| Drag and drop, wireless, sound | Written, **not yet verified** |
+| Drag and drop | Device verified on the Galaxy A54: a text file reached Download and an APK installed, including a test-only build from Android Studio. Fixed on the way: dropping anything froze the window |
+| `Alt` + `Left`/`Right` | Verified with two real windows: each sends Focus to the next or previous phone window, wrapping around |
+| Wireless | Written. **A successful connection is not verified**: the computer and phone tested were on separate networks |
+| Phone sound | Device verified that sound streams to the computer: 1.7 MB of audio arrived in a few seconds. **Whether it is audible is not verified**, because another running copy of OpenVysor held the phone's audio capture |
 | Screenshot | Device verified: saved to `Pictures\OpenVysor` |
 | Recording to MP4 | Device verified: stopped with the button (1 min 24 s file) and by closing the window (1 min 52 s file). Video only, no sound |
 | Opening speed | Measured on a real phone: window in 245–367 ms, first picture about 0.95 s once the server is on the phone |
 | End-to-end latency | **Not measured** |
 | Hardware video decoding | Not done; decoding runs on the CPU |
 | Installer | Windows installer and uninstaller verified silently on Windows 11. Linux Flatpak manifest in `packaging/flatpak/` |
-| Workspaces (save, delete) | Save verified through the real UI against a mock adb on a virtual display. **Reopening not verified on a phone** |
-| Per-app quality and window position | Saving verified through the real UI against a mock adb. **Effect on a real stream not verified** |
-| Key mapping | Adding and removing a binding verified through the real UI on a sample picture. **Touches not verified on a phone** |
-| File browser | Listing with sizes verified on a phone (Android 16), including odd names and a 276-item folder. Browsing and downloading verified through the real UI against a mock adb. Filter unit tested. **Upload and download not verified on a phone** |
-| Notifications | Parser verified against real `dumpsys` output from a Nothing Phone (3a), Android 16: all four notifications read, with text over several lines. **Page not verified on a phone; other Android versions may differ** |
-| Tray icon and global shortcut | Window restore verified on Windows. **The key press and tray clicks not verified; macOS not verified** |
+| Workspaces (save, delete) | Device verified on the Galaxy A54: a workspace with Calculator and Clock was saved, both closed, and reopening it brought both back live |
+| Per-app quality and window position | Device verified on the Galaxy A54: Smooth gave a 1280-pixel stream and the window opened at its saved position; Sharp gave the phone's native 1600 |
+| Key mapping | Device verified on the Galaxy A54: `G` bound to Calculator's 7 typed "77" when pressed twice |
+| File browser | Device verified on the Galaxy A54: a file dropped on the Files page uploaded to Download, the filter box found it in a 111-item folder, and its Download button saved it to the computer. Listing also verified on the Nothing phone, including odd names and a 276-item folder |
+| Notifications | Device verified on the Galaxy A54: after **Turn on**, a new notification appeared on the page within one refresh. Parser also verified against real `dumpsys` output from the Nothing phone |
+| Tray icon and global shortcut | On Windows, the tray icon is created and `Ctrl+Shift+O` registers; a running copy of the app already owned the shortcut. **The key press and tray clicks not verified; macOS not verified** |
 | Mirror all | Button verified with two mock phones. **Not verified with two real phones** |
 | One-click ADB setup | Real download and install verified on Windows, and a failed download recovers. **Not verified on macOS** |
 | Quality presets, open windows list, page shortcuts, search keys | Unit tested and checked in screenshots, **not yet verified with a phone** |

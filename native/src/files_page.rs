@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use eframe::egui::{Align, Context, CursorIcon, FontId, Key, Layout, ScrollArea, Sense, TextEdit, Ui, pos2, vec2};
+use eframe::egui::{
+    Align, Context, CursorIcon, FontId, Key, Layout, Role, ScrollArea, Sense, TextEdit, Ui, WidgetInfo, pos2, vec2,
+};
 
 use crate::error::AppError;
 use crate::state::Core;
@@ -112,8 +114,12 @@ impl FilesPage {
         let colors = palette(ui);
         let mut download = false;
         let row = ui.allocate_ui_with_layout(vec2(ui.available_width(), ROW_HEIGHT), Layout::right_to_left(Align::Center), |ui| {
-            download = theme::button(ui, ButtonKind::Quiet, "Download", true).clicked();
+            let button = theme::button(ui, ButtonKind::Quiet, "Download", true);
+            button.widget_info(|| WidgetInfo::labeled(Role::Button, true, format!("Download {}", entry.name)));
+            download = button.clicked();
             let (rect, response) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_HEIGHT), Sense::click());
+            let role = if entry.is_dir { Role::Button } else { Role::ListItem };
+            response.widget_info(|| WidgetInfo::labeled(role, true, &entry.name));
             if response.hovered() {
                 ui.painter().rect_filled(rect, 8.0, colors.muted);
             }

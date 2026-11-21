@@ -42,6 +42,8 @@ pub struct Video {
     recording: Mutex<Recording>,
     ended_recording: Mutex<Option<Result<PathBuf, String>>>,
     display_long_side: AtomicU32,
+    audio_bytes: AtomicU64,
+    loudest_sample: AtomicU32,
 }
 
 impl Video {
@@ -61,6 +63,22 @@ impl Video {
 
     pub fn size(&self) -> [u32; 2] {
         *self.size.lock().unwrap()
+    }
+
+    /// Phone sound received so far, in bytes of 16-bit stereo PCM.
+    pub fn audio_bytes(&self) -> u64 {
+        self.audio_bytes.load(Ordering::Relaxed)
+    }
+
+    /// The loudest sample heard so far, from 0 to 32768.
+    pub fn loudest_sample(&self) -> u32 {
+        self.loudest_sample.load(Ordering::Relaxed)
+    }
+
+    fn heard(&self, pcm: &[u8]) {
+        self.audio_bytes.fetch_add(pcm.len() as u64, Ordering::Relaxed);
+        let loudest = pcm.as_chunks::<2>().0.iter().map(|pair| i16::from_le_bytes(*pair).unsigned_abs() as u32).max().unwrap_or(0);
+        self.loudest_sample.fetch_max(loudest, Ordering::Relaxed);
     }
 
     pub fn frames(&self) -> u64 {
@@ -195,11 +213,15 @@ fn picture_step(video_long_side: u32, display_long_side: u32) -> usize {
 /// Builds the sink a session writes to. Audio goes to `audio` when it is set.
 pub fn packet_sink(video: Arc<Video>, repaint: Repaint, audio: Option<Sender<Vec<u8>>>) -> PacketSink {
     let (tx, rx) = mpsc::channel::<Vec<u8>>();
+    let listener = video.clone();
     thread::spawn(move || decode_loop(rx, video, repaint));
     Arc::new(move |mut packet: Vec<u8>| match packet.first() {
-        Some(&KIND_AUDIO_FRAME | &KIND_AUDIO_CONFIG) => {
+        Some(&kind @ (KIND_AUDIO_FRAME | KIND_AUDIO_CONFIG)) => {
             if let Some(audio) = &audio {
-                packet.drain(..PAYLOAD_OFFSET);
+                packet.drain(..PAYLOAD_OFFSET.min(packet.len()));
+                if kind == KIND_AUDIO_FRAME {
+                    listener.heard(&packet);
+                }
                 let _ = audio.send(packet);
             }
             true
@@ -225,6 +247,19 @@ mod tests {
         assert_eq!(picture_step(2392, 3000), 1);
         assert_eq!(picture_step(2392, 950), 2);
         assert_eq!(picture_step(2392, 760), 3);
+    }
+
+    #[test]
+    fn counts_phone_sound_and_its_loudest_sample() {
+        let video = Arc::new(Video::default());
+        let (audio, heard) = mpsc::channel();
+        let sink = packet_sink(video.clone(), Arc::new(|| {}), Some(audio));
+        let mut packet = vec![KIND_AUDIO_FRAME; PAYLOAD_OFFSET];
+        packet.extend([0x10, 0x00, 0x00, 0x80, 0xff, 0x7f, 0x00, 0x00]);
+        assert!(sink(packet));
+        assert_eq!(heard.recv().unwrap().len(), 8);
+        assert_eq!(video.audio_bytes(), 8);
+        assert_eq!(video.loudest_sample(), 32768);
     }
 
     #[test]

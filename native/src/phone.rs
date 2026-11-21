@@ -68,6 +68,8 @@ struct State {
     pending_spot: Option<[f32; 2]>,
     bindings: Vec<KeyBinding>,
     held: Vec<usize>,
+    /// Where the phone's picture was last drawn, in points.
+    picture: Option<Rect>,
     /// Counts starts, so results from an older start never overwrite a newer one.
     generation: u64,
 }
@@ -82,6 +84,7 @@ enum Action {
     Reconnect,
     ToggleKeys,
     EditKeys,
+    SendFiles(Vec<PathBuf>),
 }
 
 #[derive(Clone, Copy)]
@@ -167,6 +170,8 @@ fn icon_button(ui: &mut Ui, icon: Icon, tip: &str, color: Option<Color32>, enabl
     }
     let tint = if enabled { color.unwrap_or(Color32::from_gray(225)) } else { Color32::from_gray(85) };
     paint_icon(ui.painter(), icon, rect.center(), tint);
+    // Screen readers, and the device tests, find each button by its name.
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, tip));
     response.on_hover_text(tip).clicked()
 }
 
@@ -258,6 +263,7 @@ impl Phone {
                 pending_spot: None,
                 bindings,
                 held: Vec::new(),
+                picture: None,
                 generation: 0,
             }),
             launching: Mutex::new(()),
@@ -319,6 +325,16 @@ impl Phone {
 
     fn repaint(&self) {
         self.ctx.request_repaint_of(self.id);
+    }
+
+    /// Where the picture was last drawn, so a point on the phone can be found in the window.
+    pub fn picture_rect(&self) -> Option<Rect> {
+        self.state.lock().unwrap().picture
+    }
+
+    /// The short message shown at the bottom of the window, such as "Installed app.apk".
+    pub fn notice(&self) -> Option<String> {
+        self.state.lock().unwrap().notice.as_ref().map(|(text, _)| text.clone())
     }
 
     fn set_notice(&self, text: impl Into<String>) {
@@ -541,6 +557,7 @@ impl Phone {
                 state.key_mode = if state.key_mode == KeyMode::Play { KeyMode::Off } else { KeyMode::Play };
                 self.release_held_keys(&mut state);
             }
+            Action::SendFiles(paths) => self.send_files(paths),
             Action::EditKeys => {
                 let editing = {
                     let mut state = self.state.lock().unwrap();
@@ -675,6 +692,7 @@ impl Phone {
         let size = self.video.size();
         if let (Status::Streaming, Some(texture)) = (state.status, &state.texture) {
             let rect = fit_inside(area, size);
+            state.picture = Some(rect);
             self.video.set_display_long_side((rect.width().max(rect.height()) * ui.ctx().pixels_per_point()).round() as u32);
             let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
             ui.painter().image(texture.id(), rect, uv, Color32::WHITE);
@@ -685,7 +703,8 @@ impl Phone {
                 input.raw.dropped_files.iter().map(|file| file.path().to_path_buf()).collect()
             });
             if !dropped.is_empty() {
-                self.send_files(dropped);
+                // Later, once the state is unlocked: sending sets a notice, which locks it.
+                actions.push(Action::SendFiles(dropped));
             }
             if ui.input(|input| !input.raw.hovered_files.is_empty()) {
                 ui.painter().rect_filled(area.shrink(8.0), 12.0, Color32::from_black_alpha(190));

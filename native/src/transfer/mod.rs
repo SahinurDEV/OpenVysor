@@ -55,7 +55,8 @@ pub fn send_path(adb: &Adb, serial: &str, path: &Path) -> Result<TransferResult>
 
     let mut args: Vec<OsString> = vec!["-s".into(), serial.into()];
     if is_apk(path) {
-        args.extend(["install".into(), "-r".into(), path.into()]);
+        // -r replaces an installed copy; -t accepts the test-only builds Android Studio makes.
+        args.extend(["install".into(), "-r".into(), "-t".into(), path.into()]);
         let output = String::from_utf8_lossy(&adb.run(&args, TRANSFER_TIMEOUT)?).into_owned();
         check_install_output(&output)?;
         Ok(TransferResult { name, action: TransferAction::Installed })

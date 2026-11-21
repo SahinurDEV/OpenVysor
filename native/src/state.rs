@@ -70,9 +70,13 @@ fn remember_address(addresses: &mut Vec<String>, address: &str) {
 }
 
 fn app_folder() -> Result<PathBuf> {
-    let folder = dirs::data_local_dir()
-        .ok_or_else(|| AppError::Invalid("no local data folder".into()))?
-        .join("OpenVysor");
+    // Lets tests, and anyone wanting a portable copy, keep settings somewhere else.
+    let folder = match std::env::var_os("OPENVYSOR_DATA_DIR") {
+        Some(folder) => PathBuf::from(folder),
+        None => dirs::data_local_dir()
+            .ok_or_else(|| AppError::Invalid("no local data folder".into()))?
+            .join("OpenVysor"),
+    };
     std::fs::create_dir_all(&folder)?;
     Ok(folder)
 }

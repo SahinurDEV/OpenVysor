@@ -1451,30 +1451,6 @@ impl eframe::App for App {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn builds_the_android_pairing_qr_text() {
-        assert_eq!(pairing_qr_text("studio-1", "abc"), "WIFI:T:ADB;S:studio-1;P:abc;;");
-    }
-
-    #[test]
-    fn tokens_are_hex_of_the_requested_size() {
-        let token = hex_token(4);
-        assert_eq!(token.len(), 8);
-        assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
-    }
-
-    #[test]
-    fn layouts_always_have_at_least_one_column() {
-        assert_eq!(columns_for(100.0, 360.0, 14.0), 1);
-        assert_eq!(columns_for(734.0, 360.0, 14.0), 2);
-        assert_eq!(columns_for(733.0, 360.0, 14.0), 1);
-    }
-}
-
 /// Connects, or pairs and then connects when a code is given, on a worker thread.
 /// `busy` is set meanwhile and `slot` receives the message to show.
 fn spawn_wireless(core: &Arc<Core>, ctx: &Context, busy: &Arc<AtomicBool>, slot: &TaskResult, address: String, code: Option<String>) {
@@ -1499,4 +1475,28 @@ fn spawn_wireless(core: &Arc<Core>, ctx: &Context, busy: &Arc<AtomicBool>, slot:
         busy.store(false, Ordering::Relaxed);
         ctx.request_repaint();
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_the_android_pairing_qr_text() {
+        assert_eq!(pairing_qr_text("studio-1", "abc"), "WIFI:T:ADB;S:studio-1;P:abc;;");
+    }
+
+    #[test]
+    fn tokens_are_hex_of_the_requested_size() {
+        let token = hex_token(4);
+        assert_eq!(token.len(), 8);
+        assert!(token.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn layouts_always_have_at_least_one_column() {
+        assert_eq!(columns_for(100.0, 360.0, 14.0), 1);
+        assert_eq!(columns_for(734.0, 360.0, 14.0), 2);
+        assert_eq!(columns_for(733.0, 360.0, 14.0), 1);
+    }
 }

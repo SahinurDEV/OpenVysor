@@ -214,6 +214,7 @@ pub fn button(ui: &mut Ui, kind: ButtonKind, label: &str, enabled: bool) -> Resp
         let position = rect.center() - galley.size() / 2.0;
         ui.painter().galley(position, galley, text.gamma_multiply(opacity));
     }
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
     if enabled { response.on_hover_cursor(CursorIcon::PointingHand) } else { response }
 }
 

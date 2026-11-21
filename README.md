@@ -22,8 +22,9 @@ One small native Rust app. No account, no cloud, no root.
 
 </div>
 
-> **Early development.** OpenVysor is usable, but young. Testing so far has used one phone
-> running Android 16, and the [feature table](#features) says exactly what has been confirmed.
+> **Early development.** OpenVysor is usable, but young. Testing so far has used two phones
+> running Android 16, a Nothing Phone (3a) and a Samsung Galaxy A54, and the
+> [feature table](#features) says exactly what has been confirmed.
 
 ## Why OpenVysor
 
@@ -45,17 +46,18 @@ One small native Rust app. No account, no cloud, no root.
 | Clean exit, with nothing left running | ✅ Confirmed |
 | Clipboard sync, both ways | ✅ Confirmed on a real phone |
 | Screenshots and MP4 recording | ✅ Confirmed on a real phone |
-| Whole-phone mirroring | 🧪 Picture confirmed; mouse input being tested |
-| Dragging, scrolling, typing and rotation | 🧪 Written, being tested |
-| Automatic reconnection | 🧪 Written, being tested |
-| Wi-Fi by QR code, pairing code, IP address, or one click from USB | 🧪 Written, being tested |
-| Drag and drop for APKs and files | 🧪 Written, being tested |
-| Phone sound on your computer | 🧪 Written, being tested |
-| Workspaces, per-app quality and remembered positions | 🧪 Written, being tested |
-| Key mapping for games | 🧪 Written, being tested |
-| File browser with sizes, filter, download and upload | 🧪 Listing confirmed on a real phone; transfers being tested |
-| Phone notifications (optional, read-only) | 🧪 Reading confirmed on a real phone; page being tested |
-| Tray icon and global shortcut (Windows and macOS) | 🧪 Written, being tested |
+| Whole-phone mirroring, with mouse and keyboard | ✅ Confirmed on a real phone |
+| Dragging, scrolling, typing and rotation | ✅ Confirmed on a real phone |
+| Automatic reconnection | ✅ Confirmed on a real phone |
+| Drag and drop for APKs and files | ✅ Confirmed on a real phone |
+| Workspaces, per-app quality and remembered positions | ✅ Confirmed on a real phone |
+| Key mapping for games | ✅ Confirmed on a real phone |
+| File browser with sizes, filter, download and upload | ✅ Confirmed on a real phone |
+| Phone notifications (optional, read-only) | ✅ Confirmed on a real phone |
+| `Alt` + `←` / `→` between phone windows | ✅ Confirmed |
+| Phone sound on your computer | 🧪 Sound arrives from a real phone; listening check still to do |
+| Tray icon and global shortcut (Windows and macOS) | 🧪 Both register on Windows; the key press and macOS not yet tested |
+| Wi-Fi by QR code, pairing code, IP address, or one click from USB | 🧪 Written; not yet tested with the phone and computer on one network |
 
 The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
@@ -63,7 +65,7 @@ The full record is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
 | Platform | Builds and unit tests | App opens | Mirrors a real phone |
 | --- | --- | --- | --- |
-| Windows 10/11 x64 | ✅ | ✅ | ✅ App windows |
+| Windows 10/11 x64 | ✅ | ✅ | ✅ App windows and the whole phone |
 | Linux x64 | ✅ | ✅ Virtual display | ⏳ Not yet |
 | macOS (Apple Silicon and Intel) | ✅ GitHub Actions | ⏳ Not yet | ⏳ Not yet |
 

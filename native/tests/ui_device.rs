@@ -1160,7 +1160,8 @@ fn notifications_page_shows_a_new_notification() {
     // Only this test's own notification is looked for; the phone's others are never printed.
     device.shell("cmd notification post -t 'OpenVysor test' openvysor-page 'Shown on the Notifications page' >/dev/null");
     page.wait_for("Open OpenVysor test", &mut show);
-    device.shell("cmd notification cancel openvysor-page");
+    // Some phones have no `cancel`; stopping Shell then clears the notifications it posted.
+    device.shell("cmd notification cancel openvysor-page 2>/dev/null; cmd notification list | grep -q openvysor-page && am force-stop com.android.shell");
     println!("the page shows the new notification");
     notifications.clear();
 }
